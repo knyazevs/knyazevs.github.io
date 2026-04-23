@@ -1,0 +1,17 @@
+# JVM build — альтернатива нативному Dockerfile. Подходит для разработки
+# и для деплоя когда нужны полноценные SLF4J-логи / JVM-диагностика.
+# Собрать: docker build -f Dockerfile.jvm -t knyazevs-server:jvm .
+
+FROM gradle:8-jdk21 AS build
+WORKDIR /app
+COPY build.gradle.kts settings.gradle.kts gradle.properties ./
+RUN gradle dependencies --no-daemon || true
+COPY src ./src
+RUN gradle shadowJar --no-daemon
+
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+COPY --from=build /app/build/libs/knyazevs-server-1.0.0.jar server.jar
+COPY ../docs /app/docs
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "server.jar"]

@@ -1,0 +1,149 @@
+name: Deploy server to VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/src/**'
+      - 'server/build.gradle.kts'
+      - 'server/settings.gradle.kts'
+      - 'server/gradle.properties'
+      - 'server/gradle/**'
+      - 'server/Dockerfile'
+      - 'docker-compose.prod.yml'
+      - 'scripts/deploy-server.sh'
+      - '.github/workflows/deploy-server.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 1. Сборка K/N-образа на GH runner и push в GHCR.
+  #    Тяжёлый konan-линк (~1–2 мин) выполняется здесь, а не на VPS.
+  #    BuildKit-кэш GHA переживает между запусками — инкрементальные сборки
+  #    укладываются в ~30 секунд при изменении только src.
+  # ═══════════════════════════════════════════════════════════════════════════
+  build:
+    name: Build & push image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.vars.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Normalize image name (ghcr требует lowercase)
+        id: vars
+        run: |
+          IMAGE="$(echo '${{ github.repository }}/server' | tr '[:upper:]' '[:lower:]')"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.vars.outputs.image }}:sha-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.vars.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 2. Деплой на VPS: git pull (чтобы подтянуть docs/ и compose),
+  #    docker login в GHCR, pull нового образа, up -d.
+  #    Занимает ~20–40 секунд.
+  # ═══════════════════════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        timeout-minutes: 10
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          CLASSIFIER_MODEL: ${{ vars.CLASSIFIER_MODEL }}
+          EMBEDDING_BASE_URL: ${{ vars.EMBEDDING_BASE_URL }}
+          EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL }}
+          CORS_ALLOWED_ORIGIN: ${{ vars.CORS_ALLOWED_ORIGIN }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          GIT_REPO_URL: ${{ vars.GIT_REPO_URL }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ needs.build.outputs.image }}:sha-${{ github.sha }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ vars.VPS_PORT || 22 }}
+          timeout: 10m
+          envs: >
+            OPENROUTER_API_KEY,
+            SESSION_SECRET,
+            LLM_BASE_URL,
+            LLM_MODEL,
+            CLASSIFIER_MODEL,
+            EMBEDDING_BASE_URL,
+            EMBEDDING_MODEL,
+            CORS_ALLOWED_ORIGIN,
+            DEPLOY_PATH,
+            GIT_REPO_URL,
+            IMAGE_REF,
+            GHCR_USER,
+            GHCR_TOKEN
+          script: |
+            set -e
+            DEPLOY_PATH="${DEPLOY_PATH:-/opt/knyazevs}"
+
+            # Первый деплой: клонируем репо (нужен для docs/ и compose)
+            if [ ! -d "$DEPLOY_PATH/.git" ]; then
+              echo "==> Первый деплой — клонирование репозитория"
+              mkdir -p "$DEPLOY_PATH"
+              chown "$(whoami):$(whoami)" "$DEPLOY_PATH"
+              git clone "$GIT_REPO_URL" "$DEPLOY_PATH"
+            fi
+
+            echo "==> git pull"
+            cd "$DEPLOY_PATH"
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "==> docker login ghcr.io"
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            export IMAGE_REF
+            bash "$DEPLOY_PATH/scripts/deploy-server.sh"
+
+      - name: Notify success
+        if: success()
+        run: echo "✅ Deploy succeeded"
+
+      - name: Notify failure
+        if: failure()
+        run: echo "❌ Deploy failed — check logs above"

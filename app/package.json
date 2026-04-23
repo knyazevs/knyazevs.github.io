@@ -1,0 +1,23 @@
+{
+  "name": "whole-wasp",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/svelte": "^8.0.4",
+    "astro": "^6.1.2",
+    "highlight.js": "^11.11.1",
+    "marked": "^15.0.12",
+    "mermaid": "^11.4.1",
+    "svelte": "^5.55.1",
+    "typescript": "^5.9.3"
+  }
+}

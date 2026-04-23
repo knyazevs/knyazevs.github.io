@@ -1,0 +1,172 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CosmicOrb from '../components/CosmicOrb.svelte';
+---
+
+<Layout title="404 — Sergey Knyazev">
+  <div class="stage">
+    <div class="orb-bg" aria-hidden="true">
+      <CosmicOrb client:load state="error" centerY={0.07} />
+    </div>
+
+    <header class="top-bar">
+      <div class="top-bar-inner">
+        <a class="identity" href="/">
+          <span class="name">Sergey Knyazev</span>
+          <span class="role">› Technical Lead · Architect<span class="cursor">_</span></span>
+        </a>
+      </div>
+    </header>
+
+    <main class="not-found">
+      <div class="code" aria-hidden="true">404</div>
+      <div class="message">
+        <p class="title">Маршрут не найден</p>
+        <p class="hint">Страница, которую вы искали, отсутствует в индексе.</p>
+      </div>
+      <a class="home-link" href="/">← вернуться на главную</a>
+    </main>
+  </div>
+</Layout>
+
+<script>
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+    if ((localStorage.getItem('theme') || 'auto') === 'auto') {
+      document.documentElement.setAttribute('data-theme', e.matches ? 'light' : 'dark');
+    }
+  });
+</script>
+
+<style>
+  .orb-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.45;
+  }
+
+  .top-bar {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    align-self: stretch;
+    flex-shrink: 0;
+    padding: 0 clamp(16px, 4vw, 48px);
+    background: color-mix(in srgb, var(--color-bg) 55%, transparent);
+    backdrop-filter: blur(12px) saturate(1.1);
+    -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  }
+
+  .top-bar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0 12px;
+  }
+
+  .identity {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    text-decoration: none;
+  }
+
+  .name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-heading);
+    letter-spacing: -0.01em;
+    text-shadow: 0 0 40px var(--color-accent-glow);
+  }
+
+  .role {
+    font-size: 10px;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+    opacity: 0.75;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cursor {
+    animation: blink 1.2s step-end infinite;
+    color: var(--color-accent);
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .not-found {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 24px 24px 64px;
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .code {
+    font-family: var(--font-mono);
+    font-size: clamp(88px, 16vw, 180px);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-text-heading);
+    letter-spacing: -0.04em;
+    text-shadow: 0 0 60px var(--color-accent-glow);
+  }
+
+  .message {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 360px;
+  }
+
+  .title {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    color: var(--color-accent);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hint {
+    font-size: 13px;
+    color: var(--color-text-dim);
+    line-height: 1.6;
+  }
+
+  .home-link {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    padding: 9px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    background: var(--color-surface);
+    letter-spacing: 0.04em;
+    transition: all var(--transition);
+  }
+
+  .home-link:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>

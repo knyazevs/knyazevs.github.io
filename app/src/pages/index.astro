@@ -1,0 +1,19 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Interface from '../components/RightPanel.svelte';
+---
+
+<Layout title="Sergey Knyazev — Architect">
+  <div class="stage">
+    <Interface client:load />
+  </div>
+</Layout>
+
+<script>
+  // Авто-тема при смене системной
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+    if ((localStorage.getItem('theme') || 'auto') === 'auto') {
+      document.documentElement.setAttribute('data-theme', e.matches ? 'light' : 'dark');
+    }
+  });
+</script>

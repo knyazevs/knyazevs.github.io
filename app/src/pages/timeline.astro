@@ -1,0 +1,18 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Interface from '../components/RightPanel.svelte';
+---
+
+<Layout title="Timeline — Sergey Knyazev">
+  <div class="stage">
+    <Interface client:load autoOpenTab="timeline" />
+  </div>
+</Layout>
+
+<script>
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+    if ((localStorage.getItem('theme') || 'auto') === 'auto') {
+      document.documentElement.setAttribute('data-theme', e.matches ? 'light' : 'dark');
+    }
+  });
+</script>

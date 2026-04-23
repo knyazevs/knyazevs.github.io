@@ -1,0 +1,44 @@
+# build output
+dist/
+# generated types
+.astro/
+# generated CV — recreated by `bun run build:cv`
+app/public/cv.pdf
+# статические данные для прод-фронта — генерируются `bun run build:data`
+app/public/data/
+# карта корпуса для agentic-режима — регенерируется `bun run build:corpus-map`
+docs/.corpus-map.md
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+# Gradle build output
+server/build/
+server/.gradle/
+server/.kotlin/
+
+# JVM heap dumps (from konan OOM etc.)
+*.hprof
+
+# Embedding cache — regenerated automatically, not for VCS
+server/.embedding-cache.json
+
+# Private / personal materials — never in VCS
+private/

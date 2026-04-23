@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run:*)",
+      "WebSearch",
+      "Bash(git -C /Users/sergey/knyazevs show 059ac2e --stat)"
+    ]
+  }
+}

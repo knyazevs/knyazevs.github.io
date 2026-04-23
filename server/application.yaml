@@ -1,0 +1,43 @@
+# Конфигурация сервера, читается Ktor'ом через ApplicationConfig.
+# Синтаксис $VAR — чтение env-переменной; $VAR:default — с дефолтом.
+# Мультиплатформенный YamlConfigLoader работает одинаково на JVM и K/N —
+# ушли на него вместо dotenv-kmp, у которого systemEnv ломался на Native.
+
+ktor:
+  deployment:
+    port: "$PORT:8080"
+
+app:
+  llm:
+    baseUrl: "$LLM_BASE_URL:https://openrouter.ai/api/v1"
+    model: "$LLM_MODEL:anthropic/claude-opus-4-7"
+    # Comma-separated список моделей для fallback (в порядке попыток),
+    # если primary вернула не-2xx либо 200 с нулём content-токенов.
+    # Пусто = fallback отключён.
+    fallbackModels: "$LLM_MODEL_FALLBACKS:anthropic/claude-sonnet-4-7"
+    classifierModel: "$CLASSIFIER_MODEL:openai/gpt-4o-mini"
+    openRouterApiKey: "$OPENROUTER_API_KEY:"
+  embedding:
+    # ADR-028: embeddings ходят через OpenRouter-прокси к OpenAI-совместимому
+    # /v1/embeddings. Аутентификация — тем же OPENROUTER_API_KEY.
+    baseUrl: "$EMBEDDING_BASE_URL:https://openrouter.ai/api/v1"
+    model: "$EMBEDDING_MODEL:openai/text-embedding-3-small"
+  rag:
+    docsPath: "$DOCS_PATH:../docs"
+    codePath: "$CODE_PATH:.."
+    # Директория с skill-файлами (ADR-026). Декларативные инструкции под
+    # классы вопросов, активируются роутером.
+    skillsPath: "$SKILLS_PATH:skills"
+    cachePath: "$CACHE_PATH:.embedding-cache.json"
+  agent:
+    # Дефолтный режим на Generic-пути (ADR-027). Клиент может переопределить
+    # через поле `mode` в запросе. Валидные: agentic, full_context, rag.
+    defaultMode: "$AGENT_DEFAULT_MODE:agentic"
+  cors:
+    # 4321 — дефолтный порт Astro dev; 4322/4323 — на случай, если 4321 занят
+    # висящим процессом и dev-сервер ушёл на соседний порт.
+    allowedOrigin: "$CORS_ALLOWED_ORIGIN:http://localhost:4321,http://localhost:4322,http://localhost:4323,https://knyazevs.github.io"
+  session:
+    # Намеренно без дефолта — если переменная не задана, AppConfig.from() бросит
+    # исключение на строке чтения (getString(), а не propertyOrNull).
+    secret: "$SESSION_SECRET"
