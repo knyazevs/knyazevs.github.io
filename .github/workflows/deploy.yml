@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build and deploy'
+        required: false
+        default: 'main'
 
 permissions:
   contents: read
@@ -23,6 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.branch || 'main' }}
           fetch-depth: 0  # нужен полный git log для commits.json
 
       - uses: oven-sh/setup-bun@v2
