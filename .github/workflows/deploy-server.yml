@@ -14,6 +14,11 @@ on:
       - 'scripts/deploy-server.sh'
       - '.github/workflows/deploy-server.yml'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build and deploy'
+        required: false
+        default: 'main'
 
 concurrency:
   group: deploy-server
@@ -40,6 +45,8 @@ jobs:
       image: ${{ steps.vars.outputs.image }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || 'main' }}
 
       - name: Normalize image name (ghcr требует lowercase)
         id: vars
@@ -97,6 +104,7 @@ jobs:
           IMAGE_REF: ${{ env.REGISTRY }}/${{ needs.build.outputs.image }}:sha-${{ github.sha }}
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ inputs.branch || 'main' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -116,10 +124,12 @@ jobs:
             GIT_REPO_URL,
             IMAGE_REF,
             GHCR_USER,
-            GHCR_TOKEN
+            GHCR_TOKEN,
+            BRANCH
           script: |
             set -e
             DEPLOY_PATH="${DEPLOY_PATH:-/opt/knyazevs}"
+            BRANCH="${BRANCH:-main}"
 
             # Первый деплой: клонируем репо (нужен для docs/ и compose)
             if [ ! -d "$DEPLOY_PATH/.git" ]; then
@@ -129,10 +139,10 @@ jobs:
               git clone "$GIT_REPO_URL" "$DEPLOY_PATH"
             fi
 
-            echo "==> git pull"
+            echo "==> git pull (branch=$BRANCH)"
             cd "$DEPLOY_PATH"
             git fetch origin
-            git reset --hard origin/main
+            git reset --hard "origin/$BRANCH"
 
             echo "==> docker login ghcr.io"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
