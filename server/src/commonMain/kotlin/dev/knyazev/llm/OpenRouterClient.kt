@@ -336,14 +336,22 @@ class OpenRouterClient(
     }
 
     /** Single non-streaming completion — used by QuestionRouter classifier and suggestions. */
-    suspend fun complete(messages: List<ChatMessage>, model: String = classifierModel, maxTokens: Int = 5): String {
-        println("[LLM-complete] model=$model maxTokens=$maxTokens messages=${messages.size}")
+    suspend fun complete(
+        messages: List<ChatMessage>,
+        model: String = classifierModel,
+        maxTokens: Int = 5,
+        jsonMode: Boolean = false,
+    ): String {
+        println("[LLM-complete] model=$model maxTokens=$maxTokens jsonMode=$jsonMode messages=${messages.size}")
         val requestBody = buildJsonObject {
             put("model", model)
             put("stream", false)
             put("max_tokens", maxTokens)
             putJsonArray("messages") {
                 messages.forEach { msg -> add(serializeMessage(msg)) }
+            }
+            if (jsonMode) {
+                putJsonObject("response_format") { put("type", "json_object") }
             }
         }
 

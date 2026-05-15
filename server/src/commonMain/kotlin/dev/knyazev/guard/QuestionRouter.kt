@@ -5,6 +5,8 @@ import dev.knyazev.llm.OpenRouterClient
 import dev.knyazev.rag.Skill
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.atomicfu.atomic
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.time.Clock
 
 private val logger = KotlinLogging.logger {}
@@ -54,10 +56,10 @@ class QuestionRouter(
 
         println("[ROUTER] decide(\"$question\") — known skills: ${skills.map { it.name }}")
         return runCatching {
-            val answer = openRouterClient.complete(messages, maxTokens = 64).trim()
+            val raw = openRouterClient.complete(messages, maxTokens = 80, jsonMode = true).trim()
             consecutiveFailures.value = 0
-            println("[ROUTER] raw answer: '$answer' (length=${answer.length})")
-            parse(answer, question)
+            println("[ROUTER] raw json: '$raw'")
+            parseJson(raw)
         }.getOrElse { e ->
             val failures = consecutiveFailures.incrementAndGet()
             if (failures >= FAILURE_THRESHOLD) {
@@ -70,30 +72,35 @@ class QuestionRouter(
         }
     }
 
-    private fun parse(answer: String, question: String): RoutingDecision {
-        val upper = answer.uppercase()
-        return when {
-            upper.startsWith("IRRELEVANT") || upper.startsWith("NO") -> {
+    private fun parseJson(raw: String): RoutingDecision {
+        val obj = runCatching {
+            kotlinx.serialization.json.Json.parseToJsonElement(raw).jsonObject
+        }.getOrElse {
+            println("[ROUTER] WARN: not valid JSON '$raw' → GenericRag")
+            return RoutingDecision.GenericRag
+        }
+        return when (val decision = obj["decision"]?.jsonPrimitive?.content?.uppercase()) {
+            "IRRELEVANT" -> {
                 println("[ROUTER] → IRRELEVANT")
                 RoutingDecision.Irrelevant
             }
-            upper.startsWith("SKILL:") -> {
-                val name = answer.substringAfter(":").trim().substringBefore('\n').substringBefore(' ')
+            "SKILL" -> {
+                val name = obj["name"]?.jsonPrimitive?.content?.trim().orEmpty()
                 val matched = skills.firstOrNull { it.name == name }
                 if (matched == null) {
-                    println("[ROUTER] WARN: returned unknown skill '$name' → GenericRag")
+                    println("[ROUTER] WARN: unknown skill '$name' → GenericRag")
                     RoutingDecision.GenericRag
                 } else {
                     println("[ROUTER] → SKILL:$name")
                     RoutingDecision.UseSkill(name)
                 }
             }
-            upper.startsWith("GENERIC") || upper.startsWith("YES") -> {
+            "GENERIC" -> {
                 println("[ROUTER] → GENERIC")
                 RoutingDecision.GenericRag
             }
             else -> {
-                println("[ROUTER] WARN: unparseable answer '$answer' → GenericRag")
+                println("[ROUTER] WARN: unknown decision '$decision' → GenericRag")
                 RoutingDecision.GenericRag
             }
         }
@@ -109,37 +116,47 @@ class QuestionRouter(
             }
         }
         return """
-            You are a routing classifier for a personal portfolio chatbot about Sergey Knyazev.
-            Questions may be in any language (Russian, English, etc.).
+            You are a routing classifier for a personal portfolio chatbot about Sergey Knyazev,
+            a software engineer. Questions may be in any language (Russian, English, etc.).
 
-            Classify the user question into exactly ONE of:
-            - IRRELEVANT — question is clearly NOT about Sergey, his skills, his projects, or this portfolio
-              (general knowledge, unrelated coding help, creative writing, math, etc.)
-            - SKILL:<name> — question asks for a broad/overview answer that matches one of the listed skills
-              (asks for "all" projects, "list" of something, "tell me about" a whole area).
-              Key signals: "какие", "список", "все", "обзор", "расскажи о (всех|всё)", "what are all",
-              "list of", "tell me about your".
-            - GENERIC — question is about Sergey but asks a specific, pointed fact
-              (e.g. "what stack at MRS", "when did he work at X", "which ADR about RAG").
+            Respond with ONLY a JSON object, no other text.
+
+            Classify the question into exactly ONE of three decisions:
+
+            1. IRRELEVANT — the question is clearly unrelated to a software engineer's portfolio:
+               weather, cooking, general math, creative writing, unrelated coding help for third-party
+               projects, etc. High bar — use this only when there is no plausible connection to the
+               portfolio. When in doubt, prefer GENERIC.
+               JSON: {"decision":"IRRELEVANT"}
+
+            2. SKILL — the question asks for a broad overview that maps to one of the available skills
+               below. Key signals: "какие", "все", "список", "обзор", "расскажи о всех", "what are",
+               "list", "tell me about your". A question must match BOTH the signal words AND a skill
+               description to qualify — broad phrasing alone is not enough.
+               JSON: {"decision":"SKILL","name":"<skill-name>"}
+
+            3. GENERIC — everything else about the portfolio, the project, or Sergey personally:
+               specific facts, how things work, technology choices, architecture details, experience,
+               ADR content, etc. Also use for technical questions (RAG, HyDE, Kotlin, etc.) that
+               likely refer to the portfolio even without explicitly naming Sergey.
+               JSON: {"decision":"GENERIC"}
 
             Available skills:
             $skillsBlock
 
             Examples:
-            Q: Какие проекты реализовал Сергей? → SKILL:projects-overview
-            Q: Расскажи о всех ADR → SKILL:architecture-decisions
-            Q: Какой стек у него в бэке? → GENERIC
-            Q: Какая погода в Москве? → IRRELEVANT
-            Q: Расскажи о себе → SKILL:biography
-            Q: Что в ADR-019? → GENERIC
-
-            Output rules:
-            - Return ONE line only.
-            - Exactly: IRRELEVANT, GENERIC, or SKILL:<name> (case-sensitive name).
-            - No explanation, no punctuation, no extra text.
-            - When a question uses overview words ("какие", "все", "список") and matches
-              a skill description — choose the skill, NOT GENERIC.
-            - When unsure between IRRELEVANT and GENERIC — prefer GENERIC (fail-open).
+            Q: Какие проекты реализовал Сергей? → {"decision":"SKILL","name":"projects-overview"}
+            Q: Расскажи о всех ADR → {"decision":"SKILL","name":"architecture-decisions"}
+            Q: Расскажи о себе → {"decision":"SKILL","name":"biography"}
+            Q: Какой стек у него в бэке? → {"decision":"GENERIC"}
+            Q: Что в ADR-019? → {"decision":"GENERIC"}
+            Q: Как работает RAG-пайплайн? → {"decision":"GENERIC"}
+            Q: Почему Kotlin/Ktor? → {"decision":"GENERIC"}
+            Q: Что такое HyDE в этом проекте? → {"decision":"GENERIC"}
+            Q: Расскажи про RAG в проекте → {"decision":"GENERIC"}
+            Q: Какой опыт в архитектуре? → {"decision":"GENERIC"}
+            Q: Какая погода в Москве? → {"decision":"IRRELEVANT"}
+            Q: Напиши мне код сортировки → {"decision":"IRRELEVANT"}
         """.trimIndent()
     }
 
