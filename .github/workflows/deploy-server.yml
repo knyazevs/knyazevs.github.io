@@ -129,6 +129,8 @@ jobs:
           script: |
             set -e
             DEPLOY_PATH="${DEPLOY_PATH:-/opt/knyazevs}"
+            DEPLOY_PATH="${DEPLOY_PATH%$'\r'}"
+            DEPLOY_PATH="${DEPLOY_PATH%$'\n'}"
             BRANCH="${BRANCH:-main}"
 
             # Первый деплой: клонируем репо (нужен для docs/ и compose)

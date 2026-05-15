@@ -9,6 +9,8 @@
 set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/knyazevs}"
+DEPLOY_PATH="${DEPLOY_PATH%$'\r'}"
+DEPLOY_PATH="${DEPLOY_PATH%$'\n'}"
 cd "$DEPLOY_PATH"
 
 # ── Рабочие директории ────────────────────────────────────────────────────────
