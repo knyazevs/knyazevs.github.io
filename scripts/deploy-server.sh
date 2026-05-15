@@ -52,7 +52,7 @@ SESSION_SECRET=${SESSION_SECRET}
 LLM_BASE_URL=${LLM_BASE_URL:-https://openrouter.ai/api/v1}
 LLM_MODEL=${LLM_MODEL:-anthropic/claude-opus-4-7}
 CLASSIFIER_MODEL=${CLASSIFIER_MODEL:-openai/gpt-4o-mini}
-EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-https://api.openai.com/v1}
+EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-https://openrouter.ai/api/v1}
 EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
 CORS_ALLOWED_ORIGIN=${CORS_ALLOWED_ORIGIN:-https://knyazevs.github.io}
 EOF
