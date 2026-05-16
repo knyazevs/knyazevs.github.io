@@ -13,6 +13,7 @@ services:
       LLM_MODEL: ${LLM_MODEL:-anthropic/claude-opus-4-7}
       CLASSIFIER_MODEL: ${CLASSIFIER_MODEL:-openai/gpt-4o-mini}
       EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-https://openrouter.ai/api/v1}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-openai/text-embedding-3-small}
       CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-https://knyazevs.github.io}
       DOCS_PATH: /app/docs

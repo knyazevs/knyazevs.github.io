@@ -54,6 +54,7 @@ fun runServer() {
         classifierModel = config.classifierModel,
         embeddingModel = config.embeddingModel,
         embeddingBaseUrl = config.embeddingBaseUrl,
+        embeddingApiKey = config.embeddingApiKey.takeIf { it != config.openRouterApiKey },
         baseUrl = config.llmBaseUrl,
     )
     if (config.llmFallbackModels.isNotEmpty()) {

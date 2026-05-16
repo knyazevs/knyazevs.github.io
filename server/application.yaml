@@ -19,8 +19,10 @@ app:
     openRouterApiKey: "$OPENROUTER_API_KEY:"
   embedding:
     # ADR-028: embeddings ходят через OpenRouter-прокси к OpenAI-совместимому
-    # /v1/embeddings. Аутентификация — тем же OPENROUTER_API_KEY.
+    # /v1/embeddings. По умолчанию тот же ключ что и для LLM (OPENROUTER_API_KEY).
+    # Если нужен отдельный ключ (например, прямой OpenAI key) — задай EMBEDDING_API_KEY.
     baseUrl: "$EMBEDDING_BASE_URL:https://openrouter.ai/api/v1"
+    apiKey: "$EMBEDDING_API_KEY:"
     model: "$EMBEDDING_MODEL:openai/text-embedding-3-small"
   rag:
     docsPath: "$DOCS_PATH:../docs"

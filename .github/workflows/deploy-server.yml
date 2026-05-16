@@ -97,6 +97,7 @@ jobs:
           LLM_MODEL: ${{ vars.LLM_MODEL }}
           CLASSIFIER_MODEL: ${{ vars.CLASSIFIER_MODEL }}
           EMBEDDING_BASE_URL: ${{ vars.EMBEDDING_BASE_URL }}
+          EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
           EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL }}
           CORS_ALLOWED_ORIGIN: ${{ vars.CORS_ALLOWED_ORIGIN }}
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
@@ -118,6 +119,7 @@ jobs:
             LLM_MODEL,
             CLASSIFIER_MODEL,
             EMBEDDING_BASE_URL,
+            EMBEDDING_API_KEY,
             EMBEDDING_MODEL,
             CORS_ALLOWED_ORIGIN,
             DEPLOY_PATH,

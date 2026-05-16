@@ -11,6 +11,8 @@ data class AppConfig(
     val classifierModel: String,
     val llmBaseUrl: String,
     val embeddingBaseUrl: String,
+    /** Отдельный ключ для embedding-эндпоинта. По умолчанию равен openRouterApiKey. */
+    val embeddingApiKey: String,
     val embeddingModel: String,
     val docsPath: String,
     val codePath: String,
@@ -36,9 +38,15 @@ data class AppConfig(
             if (sessionSecret.isBlank()) {
                 error("SESSION_SECRET must be set (32+ random bytes, hex/base64). Generate with: openssl rand -hex 32")
             }
+            val openRouterApiKey = config.property("app.llm.openRouterApiKey").getString()
+            if (openRouterApiKey.isBlank()) {
+                error("OPENROUTER_API_KEY must be set. Get your key at https://openrouter.ai/keys")
+            }
+            val embeddingApiKeyRaw = config.property("app.embedding.apiKey").getString()
+            val embeddingApiKey = embeddingApiKeyRaw.ifBlank { openRouterApiKey }
             return AppConfig(
                 port = config.property("ktor.deployment.port").getString().toInt(),
-                openRouterApiKey = config.property("app.llm.openRouterApiKey").getString(),
+                openRouterApiKey = openRouterApiKey,
                 llmModel = config.property("app.llm.model").getString(),
                 llmFallbackModels = config.property("app.llm.fallbackModels").getString()
                     .split(",")
@@ -47,6 +55,7 @@ data class AppConfig(
                 classifierModel = config.property("app.llm.classifierModel").getString(),
                 llmBaseUrl = config.property("app.llm.baseUrl").getString(),
                 embeddingBaseUrl = config.property("app.embedding.baseUrl").getString(),
+                embeddingApiKey = embeddingApiKey,
                 embeddingModel = config.property("app.embedding.model").getString(),
                 docsPath = config.property("app.rag.docsPath").getString(),
                 codePath = config.property("app.rag.codePath").getString(),

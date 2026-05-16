@@ -71,6 +71,8 @@ class OpenRouterClient(
     private val classifierModel: String = "openai/gpt-4o-mini",
     private val embeddingModel: String = "openai/text-embedding-3-small",
     private val embeddingBaseUrl: String? = null,
+    /** Ключ для embedding-эндпоинта. Если null — используется apiKey. */
+    private val embeddingApiKey: String? = null,
     private val baseUrl: String = "https://openrouter.ai/api/v1",
 ) {
     /** Exposed for SuggestionsService to use the same cheap model. */
@@ -97,9 +99,10 @@ class OpenRouterClient(
             put("model", embeddingModel)
             put("input", text)
         }
+        val effectiveEmbeddingKey = embeddingApiKey ?: apiKey
 
         val response = client.post(url) {
-            header(HttpHeaders.Authorization, "Bearer $apiKey")
+            header(HttpHeaders.Authorization, "Bearer $effectiveEmbeddingKey")
             header(HttpHeaders.ContentType, ContentType.Application.Json)
             setBody(requestBody.toString())
         }
