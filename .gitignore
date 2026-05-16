@@ -6,8 +6,6 @@ dist/
 app/public/cv.pdf
 # статические данные для прод-фронта — генерируются `bun run build:data`
 app/public/data/
-# карта корпуса для agentic-режима — регенерируется `bun run build:corpus-map`
-docs/.corpus-map.md
 # прогресс автора по learning-системе — личный, не в VCS
 docs/learn/.progress.json
 # скомпилированная книга учебных материалов — recreated by `bun run build:learn`

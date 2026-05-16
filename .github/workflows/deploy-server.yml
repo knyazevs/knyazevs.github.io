@@ -34,8 +34,46 @@ jobs:
   #    BuildKit-кэш GHA переживает между запусками — инкрементальные сборки
   #    укладываются в ~30 секунд при изменении только src.
   # ═══════════════════════════════════════════════════════════════════════════
+  corpus-map:
+    name: Regenerate corpus map
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || 'main' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Generate corpus map
+        run: bun run build:corpus-map
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/.corpus-map.md
+          if git diff --cached --quiet; then
+            echo "Corpus map unchanged, skipping commit"
+          else
+            git commit -m "chore: обновить corpus map [skip ci]"
+            git push
+          fi
+
   build:
     name: Build & push image
+    needs: corpus-map
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
