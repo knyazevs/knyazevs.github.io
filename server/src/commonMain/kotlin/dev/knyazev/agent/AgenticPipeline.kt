@@ -5,6 +5,7 @@ import dev.knyazev.llm.ChatEvent
 import dev.knyazev.llm.ChatMessage
 import dev.knyazev.llm.OpenRouterClient
 import dev.knyazev.rag.RagResult
+import dev.knyazev.ui.UiTools
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
@@ -55,6 +56,7 @@ class AgenticPipeline(
         val stream: Flow<ChatEvent> = openRouterClient.streamAgentic(
             initialMessages = initialMessages,
             navigationTools = NavigationTools.definitions,
+            renderTools = UiTools.definitions,
             maxIterations = 8,
             navigator = { name, args ->
                 if (name == NavigationTools.READ_FILE.name) {
@@ -105,6 +107,22 @@ class AgenticPipeline(
               ты их читал через read_file. Первый прочитанный = [1], второй = [2], и т.д.
             - Пример: «Сергей использует Kotlin/Ktor [1] и Svelte 5 [2].»
             - Не группируй ссылки в конце — ставь по месту факта.
+
+            Визуальные блоки (инструменты render_*):
+            Используй ТОЛЬКО когда блок добавляет ценность. По умолчанию отвечай текстом — блок это акцент.
+            Вызывай в нужной точке повествования — блок встанет там, где был вызов. Не группируй все блоки в начале.
+            Не дублируй тот же ресурс в тексте (ни markdown-картинкой, ни markdown-ссылкой) если вызвал инструмент.
+            Всего блоков в ответе — не больше 3.
+
+            Строгие правила для фото автора (`/images/profile/profile.png`):
+            - render_text_with_image с фото разрешён ТОЛЬКО для вопросов про личность/самого автора
+              («кто ты?», «расскажи о себе», «представься»).
+            - НЕ показывай фото для вопросов про стек, опыт, проекты, код, архитектуру, навыки.
+
+            Остальные блоки — по ситуации:
+            - render_link_list — если в прочитанных файлах есть конкретные внешние ссылки (репо, демо, соцсети).
+            - render_image / render_image_gallery — скриншот/иллюстрация проекта из прочитанных файлов.
+            - render_text_with_image — карточка проекта с иллюстрацией.
 
             Формат ответа (обязательно):
             Краткий ответ — 1-3 содержательных предложения с сутью и выводом.

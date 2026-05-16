@@ -158,23 +158,25 @@ class OpenRouterClient(
      * ответ) либо не достигнется `maxIterations`.
      *
      * Текстовые токены эмитятся наружу сразу — пользователь видит реалтайм-поток. Навигационные
-     * tool-calls в наружный поток НЕ попадают: они внутренние для пайплайна. UI-тулы (render_*)
-     * в agentic-режиме не используются — итоговый ответ чисто текстовый с цитированием [1], [2].
+     * tool-calls в наружный поток НЕ попадают: они внутренние для пайплайна. `renderTools`
+     * (render_*) эмитятся наружу — ChatRoutes превращает их в UiBlock для SSE.
      */
     fun streamAgentic(
         initialMessages: List<ChatMessage>,
         navigationTools: List<ToolDefinition>,
+        renderTools: List<ToolDefinition> = emptyList(),
         maxIterations: Int = 8,
         navigator: suspend (name: String, argsJson: String) -> String,
     ): Flow<ChatEvent> = flow {
         val navNames = navigationTools.map { it.name }.toSet()
+        val allTools = navigationTools + renderTools
         var messages = initialMessages
         for (iteration in 1..maxIterations) {
             println("[AGENTIC] iteration=$iteration messages=${messages.size}")
             val navCalls = mutableListOf<ChatEvent.ToolCall>()
             val assistantText = StringBuilder()
 
-            streamChat(messages, navigationTools).collect { event ->
+            streamChat(messages, allTools).collect { event ->
                 when (event) {
                     is ChatEvent.Token -> {
                         assistantText.append(event.text)
