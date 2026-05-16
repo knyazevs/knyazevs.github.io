@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
-    import { BACKEND_URL, TTS_ENABLED } from "../config";
+    import { BACKEND_URL, VOICE_ENABLED } from "../config";
     import { authHeaders } from "../lib/session";
     import { marked } from "marked";
     import CosmicOrb from "./CosmicOrb.svelte";
@@ -92,7 +92,7 @@
     let mediaRecorder: MediaRecorder | null = null;
     let audioChunks: BlobPart[] = [];
     let currentAudio: HTMLAudioElement | null = null;
-    let ttsEnabled = $state(TTS_ENABLED);
+    let ttsEnabled = $state(VOICE_ENABLED);
 
     // ─── Voice reactivity (mic → orb) ───────────────────────────────────────
     let voiceLevel = $state(0);
@@ -566,7 +566,7 @@
             /* corrupted — start fresh */
         }
 
-        if (TTS_ENABLED) {
+        if (VOICE_ENABLED) {
             ttsEnabled = localStorage.getItem("tts") !== "off";
         }
 
@@ -1622,6 +1622,7 @@
                             </svg>
                         </button>
                     {:else}
+                        {#if VOICE_ENABLED}
                         <button
                             class="action-btn tts-btn"
                             class:off={!ttsEnabled}
@@ -1703,6 +1704,7 @@
                                 />
                             </svg>
                         </button>
+                        {/if}
                         <button
                             class="action-btn send-btn"
                             onclick={handleSubmit}
