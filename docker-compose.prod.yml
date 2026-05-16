@@ -18,6 +18,7 @@ services:
       CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-https://knyazevs.github.io}
       DOCS_PATH: /app/docs
       CODE_PATH: /app/repo
+      SKILLS_PATH: /app/repo/server/skills
       CACHE_PATH: /data/embedding-cache.json
     volumes:
       - ./docs:/app/docs:ro
