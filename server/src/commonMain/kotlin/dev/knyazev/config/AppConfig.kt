@@ -53,8 +53,8 @@ data class AppConfig(
                     .map(String::trim)
                     .filter(String::isNotEmpty),
                 classifierModel = config.property("app.llm.classifierModel").getString(),
-                llmBaseUrl = config.property("app.llm.baseUrl").getString(),
-                embeddingBaseUrl = config.property("app.embedding.baseUrl").getString(),
+                llmBaseUrl = config.property("app.llm.baseUrl").getString().trim(),
+                embeddingBaseUrl = config.property("app.embedding.baseUrl").getString().trim(),
                 embeddingApiKey = embeddingApiKey,
                 embeddingModel = config.property("app.embedding.model").getString(),
                 docsPath = config.property("app.rag.docsPath").getString(),
