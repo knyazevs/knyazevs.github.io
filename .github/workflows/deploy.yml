@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PUBLIC_BACKEND_URL: ${{ vars.PUBLIC_BACKEND_URL }}
+      PUBLIC_TTS_ENABLED: ${{ vars.PUBLIC_TTS_ENABLED }}
     steps:
       - uses: actions/checkout@v4
         with:

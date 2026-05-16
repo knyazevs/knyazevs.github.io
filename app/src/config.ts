@@ -8,6 +8,9 @@ export const BACKEND_URL =
   (import.meta as { env?: { PUBLIC_BACKEND_URL?: string } }).env?.PUBLIC_BACKEND_URL
   ?? "http://localhost:8080";
 
+export const TTS_ENABLED =
+  (import.meta as { env?: { PUBLIC_TTS_ENABLED?: string } }).env?.PUBLIC_TTS_ENABLED !== "false";
+
 // Файлы, которые исключаются из навигации
 export const EXCLUDE_FILES = ["how-to.md"];
 
