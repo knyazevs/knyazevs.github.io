@@ -75,21 +75,22 @@
     // URL — единственный источник истины для chatMode и modalOpen (когда модалка
     // открыта через хэш). Семантика:
     //
-    //   ''          → главная (chatMode=false, modalOpen=false)
-    //   #chat       → чат-режим
-    //   #<path>     → открыт документ (docs/...)
-    //   #code/<path>→ открыт файл кода
+    //   ''               → главная (chatMode=false, modalOpen=false)
+    //   #chat            → чат-режим
+    //   #docs|#code|#timeline → таб модалки (список, без конкретного документа)
+    //   #<path>          → открыт документ (paths всегда содержат '/')
+    //   #code/<path>     → открыт файл кода
     //
     // navigate()        — push новой записи (open-действия, можно отменить back-ом)
     // navigateReplace() — replace текущей (close-действия, не засоряют history)
     // applyHash()       — ЕДИНСТВЕННОЕ место мутации chatMode/modalOpen из URL
     //
-    // Slash-команды и image preview работают transient — мутируют modalOpen
-    // напрямую без изменения URL.
+    // Image preview работает transient — мутирует modalOpen напрямую без хэша.
 
     type Route =
         | { kind: 'home' }
         | { kind: 'chat' }
+        | { kind: 'tab'; tab: ContentTab }
         | { kind: 'doc'; path: string }
         | { kind: 'code'; path: string };
 
@@ -97,6 +98,11 @@
         const src = decodeURIComponent(location.hash.slice(1));
         if (!src) return { kind: 'home' };
         if (src === 'chat') return { kind: 'chat' };
+        // Бэр-имена без '/' — табы. doc/code пути всегда содержат '/'
+        // (они под подпапками docs/{adr,blog,...} или code/{server,app,...}).
+        if (src === 'docs' || src === 'code' || src === 'timeline') {
+            return { kind: 'tab', tab: src };
+        }
         if (src.startsWith('code/')) return { kind: 'code', path: src.slice(5) };
         const path = src.startsWith('docs/') ? src.slice(5) : src;
         return { kind: 'doc', path };
@@ -107,6 +113,7 @@
         switch (r.kind) {
             case 'home': return base;
             case 'chat': return `${base}#chat`;
+            case 'tab':  return `${base}#${r.tab}`;
             case 'doc':  return `${base}#${encodeURIComponent(r.path)}`;
             case 'code': return `${base}#${encodeURIComponent('code/' + r.path)}`;
         }
@@ -142,12 +149,12 @@
             return;
         }
         const route = parseHash();
-        if (route.kind === 'doc' || route.kind === 'code') {
+        if (route.kind === 'doc' || route.kind === 'code' || route.kind === 'tab') {
             // Модалка открыта через хэш → возвращаемся туда, откуда пришли.
-            // Если chatMode=true, значит документ был открыт из чата.
+            // Если chatMode=true, значит модалка была открыта из чата.
             navigateReplace(chatMode ? { kind: 'chat' } : { kind: 'home' });
         } else {
-            // Slash-команда или autoOpenTab — модалка вне URL, просто закрываем.
+            // Модалка открыта вне URL (например, через autoOpenTab) — просто закрываем.
             modalOpen = false;
             modalOpenPath = null;
         }
@@ -173,6 +180,9 @@
                 if (!wasChatMode) tick().then(scrollMessages);
                 return;
             }
+            case 'tab':
+                openModal(route.tab, null);
+                return;
             case 'doc':
                 openModal('docs', route.path);
                 return;
@@ -440,13 +450,13 @@
 
     const SLASH_COMMANDS: SlashCommand[] = [
         { name: "/cv",         description: "скачать резюме (PDF)",    handler: () => { window.open("/cv.pdf", "_blank"); } },
-        { name: "/blog",       description: "записи в блоге",          handler: () => openModal("docs") },
-        { name: "/adr",        description: "архитектурные решения",   handler: () => openModal("docs") },
-        { name: "/code",       description: "браузер кода",            handler: () => openModal("code") },
-        { name: "/timeline",   description: "история коммитов",        handler: () => openModal("timeline") },
-        { name: "/skills",     description: "навыки",                  handler: () => openModal("docs") },
-        { name: "/experience", description: "опыт работы",             handler: () => openModal("docs") },
-        { name: "/profile",    description: "обо мне",                 handler: () => openModal("docs") },
+        { name: "/blog",       description: "записи в блоге",          handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
+        { name: "/adr",        description: "архитектурные решения",   handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
+        { name: "/code",       description: "браузер кода",            handler: () => navigate({ kind: 'tab', tab: 'code' }) },
+        { name: "/timeline",   description: "история коммитов",        handler: () => navigate({ kind: 'tab', tab: 'timeline' }) },
+        { name: "/skills",     description: "навыки",                  handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
+        { name: "/experience", description: "опыт работы",             handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
+        { name: "/profile",    description: "обо мне",                 handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
         { name: "/github",     description: "репозиторий на GitHub",   handler: () => { window.open("https://github.com/knyazevs/sknyazev", "_blank"); } },
         { name: "/contact",    description: "контакты",                handler: () => injectReply("/contact", CONTACT_REPLY) },
         { name: "/help",       description: "список всех команд",      handler: () => injectReply("/help", helpReply()) },
@@ -704,9 +714,11 @@
         window.addEventListener("hashchange", applyHash);
         window.addEventListener("popstate", applyHash);
         applyHash();
-        // autoOpenTab (для /code, /timeline страниц) — поверх состояния из URL.
-        // Если хэш указывает на документ — applyHash уже открыл модалку, не перетираем.
-        if (autoOpenTab && !modalOpen) openModal(autoOpenTab);
+        // autoOpenTab (для /code, /timeline Astro-страниц) — поверх состояния из URL.
+        // Если хэш уже указывает на что-то — applyHash отработал, не перетираем.
+        if (autoOpenTab && parseHash().kind === 'home') {
+            navigateReplace({ kind: 'tab', tab: autoOpenTab });
+        }
 
         return () => {
             window.removeEventListener("keydown", onGlobalKey);
@@ -1359,7 +1371,7 @@
             {/if}
             <button
                 class="icon-btn"
-                onclick={() => openModal("timeline")}
+                onclick={() => navigate({ kind: 'tab', tab: 'timeline' })}
                 aria-label="История проекта"
                 title="История"
             >
@@ -1378,7 +1390,7 @@
             </button>
             <button
                 class="icon-btn"
-                onclick={() => openModal("code")}
+                onclick={() => navigate({ kind: 'tab', tab: 'code' })}
                 aria-label="Код проекта"
                 title="Код"
             >
@@ -1398,7 +1410,7 @@
             </button>
             <button
                 class="icon-btn"
-                onclick={() => openModal("docs")}
+                onclick={() => navigate({ kind: 'tab', tab: 'docs' })}
                 aria-label="Документация"
                 title="Документация"
             >
