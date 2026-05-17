@@ -96,7 +96,6 @@
             }
             if (chatMode) {
                 chatMode = false;
-                sessionStorage.setItem(MODE_KEY, "0");
             }
             return;
         }
@@ -104,7 +103,6 @@
             if (modalOpen) { modalOpen = false; modalOpenPath = null; }
             if (!chatMode) {
                 chatMode = true;
-                sessionStorage.setItem(MODE_KEY, "1");
                 tick().then(scrollMessages);
             }
             return;
@@ -287,18 +285,14 @@
     // ─── View mode ──────────────────────────────────────────────────────────────
     let chatMode = $state(false);
 
-    const MODE_KEY = "chat-mode";
-
     function openChatMode() {
         chatMode = true;
-        sessionStorage.setItem(MODE_KEY, "1");
         history.pushState(null, '', '#chat');
         tick().then(scrollMessages);
     }
 
     function closeChatMode() {
         chatMode = false;
-        sessionStorage.setItem(MODE_KEY, "0");
         history.replaceState(null, '', location.pathname + location.search);
     }
 
@@ -603,7 +597,6 @@
                 const parsed: string[] = JSON.parse(savedFollowUps);
                 if (parsed.length) followUps = [...parsed];
             }
-            chatMode = sessionStorage.getItem(MODE_KEY) === "1";
         } catch {
             /* corrupted — start fresh */
         }
@@ -648,7 +641,7 @@
 
         window.addEventListener("hashchange", applyHash);
         window.addEventListener("popstate", applyHash);
-        if (location.hash) applyHash();
+        applyHash();
 
         return () => {
             window.removeEventListener("keydown", onGlobalKey);
