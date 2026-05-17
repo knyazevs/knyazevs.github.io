@@ -67,6 +67,8 @@
     let modalTab: ContentTab = $state("docs");
     let modalOpenPath = $state<string | null>(null);
     let pendingSources: string[] = [];
+    const SOURCES_VISIBLE = 5;
+    let expandedSources = $state(new Set<number>());
 
     function openModal(tab: ContentTab, path: string | null = null) {
         modalTab = tab;
@@ -1442,8 +1444,11 @@
                         </div>
                     {/if}
                     {#if !isStreaming && msg.sources?.length}
+                        {@const expanded = expandedSources.has(i)}
+                        {@const overflow = msg.sources.length > SOURCES_VISIBLE}
+                        {@const visible = expanded ? msg.sources : msg.sources.slice(0, SOURCES_VISIBLE)}
                         <div class="msg-sources">
-                            {#each msg.sources as src, si}
+                            {#each visible as src, si}
                                 <button
                                     class="source-chip"
                                     onclick={() => openSourceDoc(src)}
@@ -1452,6 +1457,22 @@
                                     {sourceLabel(src)}
                                 </button>
                             {/each}
+                            {#if overflow && !expanded}
+                                <button
+                                    class="source-chip source-chip--more"
+                                    onclick={() => { const s = new Set(expandedSources); s.add(i); expandedSources = s; }}
+                                >
+                                    +{msg.sources.length - SOURCES_VISIBLE}
+                                </button>
+                            {/if}
+                            {#if overflow && expanded}
+                                <button
+                                    class="source-chip source-chip--more"
+                                    onclick={() => { const s = new Set(expandedSources); s.delete(i); expandedSources = s; }}
+                                >
+                                    свернуть
+                                </button>
+                            {/if}
                         </div>
                     {/if}
                 </div>
@@ -2178,6 +2199,15 @@
         color: var(--color-accent);
         border-color: var(--color-accent);
         background: var(--color-accent-glow);
+    }
+
+    .source-chip--more {
+        opacity: 0.65;
+        font-style: italic;
+    }
+
+    .source-chip--more:hover {
+        opacity: 1;
     }
 
     .source-num {
