@@ -1960,6 +1960,7 @@
         max-width: 760px;
         margin: 0 auto;
         flex: 1;
+        min-height: 0;
         display: flex;
         flex-direction: column;
         padding: 0 24px 20px;
@@ -2104,6 +2105,7 @@
 
     .messages {
         flex: 1;
+        min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
         padding: 12px 0 8px;
