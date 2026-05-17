@@ -34,7 +34,7 @@ app:
   agent:
     # Дефолтный режим на Generic-пути (ADR-027). Клиент может переопределить
     # через поле `mode` в запросе. Валидные: agentic, full_context, rag.
-    defaultMode: "$AGENT_DEFAULT_MODE:agentic"
+    defaultMode: "$AGENT_DEFAULT_MODE:full_context"
   cors:
     # 4321 — дефолтный порт Astro dev; 4322/4323 — на случай, если 4321 занят
     # висящим процессом и dev-сервер ушёл на соседний порт.

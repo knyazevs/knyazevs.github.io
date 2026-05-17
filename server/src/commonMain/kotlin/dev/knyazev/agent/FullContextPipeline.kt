@@ -72,8 +72,9 @@ class FullContextPipeline(
         val paths = mutableListOf<String>()
         for ((idx, file) in files.withIndex()) {
             val rel = file.toString().removePrefix(projectRoot.trimEnd('/')).trimStart('/')
-            // Skip .corpus-map.md — it's derivative, and its presence would double-count content
+            // Skip generated/derivative files and learn/ — учебные материалы не для интервьюера
             if (rel.endsWith("/.corpus-map.md") || rel == "docs/.corpus-map.md") continue
+            if (rel.startsWith("docs/learn/")) continue
             val content = runCatching { fs.read(file) { readUtf8() } }.getOrNull() ?: continue
             blocks += "[${idx + 1}] Источник: $rel\n\n$content"
             paths += rel
