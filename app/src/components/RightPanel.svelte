@@ -80,21 +80,38 @@
         modalOpen = false;
         modalOpenPath = null;
         closeImagePreview();
-        if (location.hash) {
-            history.replaceState(null, '', location.pathname + location.search);
-        }
+        history.replaceState(
+            null, '',
+            chatMode ? '#chat' : location.pathname + location.search,
+        );
     }
 
     function applyHash() {
         const src = decodeURIComponent(location.hash.slice(1));
         if (!src) {
-            if (modalOpen && !imagePreviewState.value) modalOpen = false;
+            if (modalOpen && !imagePreviewState.value) {
+                modalOpen = false;
+                modalOpenPath = null;
+                closeImagePreview();
+            }
+            if (chatMode) {
+                chatMode = false;
+                sessionStorage.setItem(MODE_KEY, "0");
+            }
+            return;
+        }
+        if (src === 'chat') {
+            if (modalOpen) { modalOpen = false; modalOpenPath = null; }
+            if (!chatMode) {
+                chatMode = true;
+                sessionStorage.setItem(MODE_KEY, "1");
+                tick().then(scrollMessages);
+            }
             return;
         }
         if (isCodeSource(src)) {
             openModal("code", src.slice(5));
         } else {
-            // Normalize: strip "docs/" prefix if server sent it with the prefix
             const docPath = src.startsWith("docs/") ? src.slice(5) : src;
             openModal("docs", docPath);
         }
@@ -275,13 +292,14 @@
     function openChatMode() {
         chatMode = true;
         sessionStorage.setItem(MODE_KEY, "1");
-        // Scroll to bottom after mode switch
+        history.pushState(null, '', '#chat');
         tick().then(scrollMessages);
     }
 
     function closeChatMode() {
         chatMode = false;
         sessionStorage.setItem(MODE_KEY, "0");
+        history.replaceState(null, '', location.pathname + location.search);
     }
 
     // ─── Autocomplete ───────────────────────────────────────────────────────────
