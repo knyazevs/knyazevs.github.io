@@ -109,7 +109,7 @@ fun runServer() {
     val navigator = NavigationTools.Executor(projectRoot = config.codePath)
     val corpusMap = CorpusMap.load(projectRoot = config.codePath)
     val agenticPipeline = AgenticPipeline(openRouterClient, navigator, corpusMap)
-    val fullContextPipeline = FullContextPipeline(openRouterClient, projectRoot = config.codePath)
+    val fullContextPipeline = FullContextPipeline(openRouterClient, docsPath = config.docsPath, skillsPath = config.skillsPath)
     val defaultMode = runCatching { AgentMode.parse(config.agentDefaultMode, AgentMode.AGENTIC) }
         .getOrElse {
             logger.warn { "Invalid agent.defaultMode '${config.agentDefaultMode}', falling back to AGENTIC" }

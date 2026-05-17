@@ -27,11 +27,12 @@ private val logger = KotlinLogging.logger("FullContextPipeline")
  */
 class FullContextPipeline(
     private val openRouterClient: OpenRouterClient,
-    private val projectRoot: String,
+    private val docsPath: String,
+    private val skillsPath: String,
 ) {
     private val fs = FileSystem.SYSTEM
 
-    /** Cached при первом вызове — контент docs/ меняется редко, а переинициализация на каждый запрос стоила бы заметной I/O. */
+    /** Cached при первом вызове — контент меняется редко, переинициализация на каждый запрос стоила бы заметной I/O. */
     private var cachedCorpus: LoadedCorpus? = null
 
     suspend fun ask(question: String): RagResult {
@@ -66,19 +67,30 @@ class FullContextPipeline(
 
     private fun loadCorpus(): LoadedCorpus {
         cachedCorpus?.let { return it }
-        val docsRoot = "${projectRoot.trimEnd('/')}/docs".toPath()
-        val files = collectMarkdown(docsRoot).sortedBy { it.toString() }
         val blocks = mutableListOf<String>()
         val paths = mutableListOf<String>()
-        for ((idx, file) in files.withIndex()) {
-            val rel = file.toString().removePrefix(projectRoot.trimEnd('/')).trimStart('/')
-            // Skip generated/derivative files and learn/ — учебные материалы не для интервьюера
-            if (rel.endsWith("/.corpus-map.md") || rel == "docs/.corpus-map.md") continue
-            if (rel.startsWith("docs/learn/")) continue
+
+        // docs/ — основной контент: профиль, опыт, навыки, ADR, блог, проекты
+        val docsRoot = docsPath.toPath()
+        for (file in collectMarkdown(docsRoot).sortedBy { it.toString() }) {
+            val rel = "docs/" + file.toString().removePrefix(docsPath.trimEnd('/')).trimStart('/')
+            if (rel == "docs/.corpus-map.md" || rel.startsWith("docs/learn/")) continue
             val content = runCatching { fs.read(file) { readUtf8() } }.getOrNull() ?: continue
-            blocks += "[${idx + 1}] Источник: $rel\n\n$content"
+            blocks += "[${blocks.size + 1}] Источник: $rel\n\n$content"
             paths += rel
         }
+
+        // skills/ — кураторские нарративы: биография, опыт, стек (используются роутером в других режимах)
+        val skillsRoot = skillsPath.toPath()
+        if (fs.metadataOrNull(skillsRoot)?.isDirectory == true) {
+            for (file in collectMarkdown(skillsRoot).sortedBy { it.toString() }) {
+                val rel = "skills/" + file.name
+                val content = runCatching { fs.read(file) { readUtf8() } }.getOrNull() ?: continue
+                blocks += "[${blocks.size + 1}] Источник: $rel\n\n$content"
+                paths += rel
+            }
+        }
+
         val full = blocks.joinToString("\n\n---\n\n")
         println("[FULL-CONTEXT] corpus loaded: ${paths.size} files, ${full.length} chars (~${full.length / 4} tokens)")
         val loaded = LoadedCorpus(files = paths, content = full)
