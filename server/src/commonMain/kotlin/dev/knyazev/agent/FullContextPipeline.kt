@@ -73,11 +73,12 @@ class FullContextPipeline(
         // docs/ — основной контент: профиль, опыт, навыки, ADR, блог, проекты
         val docsRoot = docsPath.toPath()
         for (file in collectMarkdown(docsRoot).sortedBy { it.toString() }) {
-            val rel = "docs/" + file.toString().removePrefix(docsPath.trimEnd('/')).trimStart('/')
-            if (rel == "docs/.corpus-map.md" || rel.startsWith("docs/learn/")) continue
+            val relForFrontend = file.toString().removePrefix(docsPath.trimEnd('/')).trimStart('/')
+            val relForContext = "docs/$relForFrontend"
+            if (relForContext == "docs/.corpus-map.md" || relForContext.startsWith("docs/learn/")) continue
             val content = runCatching { fs.read(file) { readUtf8() } }.getOrNull() ?: continue
-            blocks += "[${blocks.size + 1}] Источник: $rel\n\n$content"
-            paths += rel
+            blocks += "[${blocks.size + 1}] Источник: $relForContext\n\n$content"
+            paths += relForFrontend
         }
 
         // skills/ — кураторские нарративы: биография, опыт, стек (используются роутером в других режимах)

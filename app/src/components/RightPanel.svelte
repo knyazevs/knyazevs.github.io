@@ -94,7 +94,9 @@
         if (isCodeSource(src)) {
             openModal("code", src.slice(5));
         } else {
-            openModal("docs", src);
+            // Normalize: strip "docs/" prefix if server sent it with the prefix
+            const docPath = src.startsWith("docs/") ? src.slice(5) : src;
+            openModal("docs", docPath);
         }
     }
 
