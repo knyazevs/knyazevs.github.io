@@ -115,13 +115,15 @@
     function navigate(r: Route) {
         const url = routeToUrl(r);
         if (url === location.pathname + location.search + location.hash) return;
-        history.pushState(null, '', url);
+        // ВНИМАНИЕ: используем window.history, т.к. локальная переменная
+        // history: Message[] затеняет глобальный history.
+        window.history.pushState(null, '', url);
         applyHash();
     }
 
     function navigateReplace(r: Route) {
         const url = routeToUrl(r);
-        history.replaceState(null, '', url);
+        window.history.replaceState(null, '', url);
         applyHash();
     }
 
