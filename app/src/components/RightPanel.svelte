@@ -149,12 +149,16 @@
     // ─── Agent mode (ADR-027) ───────────────────────────────────────────────
     const AGENT_MODE_KEY = "agent-mode";
     type AgentMode = "agentic" | "full_context" | "rag";
-    let agentMode = $state<AgentMode>("agentic");
+    // null = не отправлять mode, сервер использует AGENT_DEFAULT_MODE
+    let agentMode = $state<AgentMode | null>(null);
 
-    function setAgentMode(m: AgentMode) {
+    function setAgentMode(m: AgentMode | null) {
         agentMode = m;
-        try { sessionStorage.setItem(AGENT_MODE_KEY, m); } catch {}
-        pushLog("evt", `agent mode = ${m}`);
+        try {
+            if (m === null) sessionStorage.removeItem(AGENT_MODE_KEY);
+            else sessionStorage.setItem(AGENT_MODE_KEY, m);
+        } catch {}
+        pushLog("evt", `agent mode = ${m ?? "server-default"}`);
     }
 
     // ─── Easter eggs ────────────────────────────────────────────────────────
@@ -1157,9 +1161,15 @@
 <div class="orb-bg" class:chat-mode={chatMode} class:matrix={matrixMode} aria-hidden="true">
     {#if debugMode}
         <DebugLogStream />
-        <!-- Селектор режима агента (ADR-027). Виден только в debug-режиме — обычный посетитель получает agentic по дефолту. -->
+        <!-- Селектор режима агента (ADR-027). Виден только в debug-режиме. null = сервер использует AGENT_DEFAULT_MODE. -->
         <div class="agent-mode-switch" aria-label="Режим работы агента">
             <span class="label">mode:</span>
+            <button
+                type="button"
+                class:active={agentMode === null}
+                onclick={() => setAgentMode(null)}
+                title="Использовать серверный дефолт (AGENT_DEFAULT_MODE)."
+            >auto</button>
             <button
                 type="button"
                 class:active={agentMode === "agentic"}
