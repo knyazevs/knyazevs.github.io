@@ -80,10 +80,12 @@
         modalOpen = false;
         modalOpenPath = null;
         closeImagePreview();
-        history.replaceState(
-            null, '',
-            chatMode ? '#chat' : location.pathname + location.search,
-        );
+        // Если модалка была открыта через doc/code хэш — идём назад в history.
+        // Если через slash-команду (URL не менялся, хэш = '' или '#chat') — не трогаем URL.
+        const hash = decodeURIComponent(location.hash.slice(1));
+        if (hash && hash !== 'chat') {
+            history.back();
+        }
     }
 
     function applyHash() {
@@ -293,7 +295,7 @@
 
     function closeChatMode() {
         chatMode = false;
-        history.replaceState(null, '', location.pathname + location.search);
+        history.back();
     }
 
     // ─── Autocomplete ───────────────────────────────────────────────────────────
