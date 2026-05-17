@@ -1,8 +1,13 @@
 package dev.knyazev.rag
 
+import dev.knyazev.guard.QuestionRouter
+import dev.knyazev.guard.RoutingDecision
 import dev.knyazev.llm.ChatMessage
 import dev.knyazev.llm.OpenRouterClient
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlin.concurrent.Volatile
 
 private val logger = KotlinLogging.logger {}
@@ -10,6 +15,7 @@ private val logger = KotlinLogging.logger {}
 class SuggestionsService(
     private val llmClient: OpenRouterClient,
     private val skills: List<Skill> = emptyList(),
+    private val questionRouter: QuestionRouter? = null,
 ) {
 
     @Volatile
@@ -62,6 +68,7 @@ class SuggestionsService(
                 .map { it.trim().trimStart('-', '•', '*', ' ') }
                 .filter { it.length in 10..60 && it.endsWith("?") }
                 .take(4)
+                .let { filterRelevant(it) }
 
             if (questions.size >= 2) {
                 initialSuggestions = questions
@@ -97,13 +104,25 @@ class SuggestionsService(
                 ),
             )
             val response = llmClient.complete(messages, model = llmClient.classifierModelName, maxTokens = 150)
-            response.lines()
+            val candidates = response.lines()
                 .map { it.trim().trimStart('-', '•', '*', ' ') }
                 .filter { it.length in 10..60 && it.endsWith("?") }
                 .take(3)
+            filterRelevant(candidates)
         }.getOrElse { e ->
             logger.warn { "Failed to generate follow-ups: ${e.message}" }
             emptyList()
+        }
+    }
+
+    private suspend fun filterRelevant(candidates: List<String>): List<String> {
+        val router = questionRouter ?: return candidates
+        return coroutineScope {
+            candidates
+                .map { q -> async { q to router.decide(q) } }
+                .awaitAll()
+                .filter { (_, decision) -> decision !is RoutingDecision.Irrelevant }
+                .map { (q, _) -> q }
         }
     }
 

@@ -117,7 +117,7 @@ fun runServer() {
         }
     logger.info { "Agent default mode: $defaultMode (corpus map: ${corpusMap.chars} chars)" }
 
-    val suggestionsService = SuggestionsService(openRouterClient, skills)
+    val suggestionsService = SuggestionsService(openRouterClient, skills, questionRouter)
     val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     startupScope.launch {
         runCatching {
