@@ -174,13 +174,15 @@
 
   $effect(() => {
     if (!open || !pendingPath) return;
-    if (activeTab === 'docs' && sections.length > 0) {
+    if (activeTab === 'docs') {
       const docPath = `docs/${pendingPath}`;
       const found = allDocItems.find(item => item.path === docPath);
-      if (found) {
-        pendingPath = null;
-        openDoc(found);
-      }
+      const item = found ?? {
+        path: docPath,
+        label: (pendingPath.split('/').pop() ?? pendingPath).replace(/\.md$/, '').replace(/-/g, ' '),
+      };
+      pendingPath = null;
+      openDoc(item);
     } else if (activeTab === 'code' && codeTree.length > 0) {
       const target = pendingPath;
       pendingPath = null;

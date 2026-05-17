@@ -80,6 +80,22 @@
         modalOpen = false;
         modalOpenPath = null;
         closeImagePreview();
+        if (location.hash) {
+            history.replaceState(null, '', location.pathname + location.search);
+        }
+    }
+
+    function applyHash() {
+        const src = decodeURIComponent(location.hash.slice(1));
+        if (!src) {
+            if (modalOpen && !imagePreviewState.value) modalOpen = false;
+            return;
+        }
+        if (isCodeSource(src)) {
+            openModal("code", src.slice(5));
+        } else {
+            openModal("docs", src);
+        }
     }
 
     // Картинка раскрывается через универсальный ContentModal в image-режиме:
@@ -610,8 +626,12 @@
             }
         })();
 
+        window.addEventListener("hashchange", applyHash);
+        if (location.hash) applyHash();
+
         return () => {
             window.removeEventListener("keydown", onGlobalKey);
+            window.removeEventListener("hashchange", applyHash);
         };
     });
 
@@ -1073,11 +1093,7 @@
     }
 
     function openSourceDoc(src: string) {
-        if (isCodeSource(src)) {
-            openModal("code", src.slice(5));
-            return;
-        }
-        openModal("docs", src);
+        location.hash = encodeURIComponent(src);
     }
 
     function handleContentClick(e: MouseEvent) {
