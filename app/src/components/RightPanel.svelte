@@ -286,14 +286,12 @@
     let chatMode = $state(false);
 
     function openChatMode() {
-        chatMode = true;
-        history.pushState(null, '', '#chat');
-        tick().then(scrollMessages);
+        location.hash = 'chat';
     }
 
     function closeChatMode() {
-        chatMode = false;
         history.replaceState(null, '', location.pathname + location.search);
+        chatMode = false;
     }
 
     // ─── Autocomplete ───────────────────────────────────────────────────────────
