@@ -70,6 +70,61 @@
     const SOURCES_VISIBLE = 5;
     let expandedSources = $state(new Set<number>());
 
+    // ─── Hash router ────────────────────────────────────────────────────────────
+    //
+    // URL — единственный источник истины для chatMode и modalOpen (когда модалка
+    // открыта через хэш). Семантика:
+    //
+    //   ''          → главная (chatMode=false, modalOpen=false)
+    //   #chat       → чат-режим
+    //   #<path>     → открыт документ (docs/...)
+    //   #code/<path>→ открыт файл кода
+    //
+    // navigate()        — push новой записи (open-действия, можно отменить back-ом)
+    // navigateReplace() — replace текущей (close-действия, не засоряют history)
+    // applyHash()       — ЕДИНСТВЕННОЕ место мутации chatMode/modalOpen из URL
+    //
+    // Slash-команды и image preview работают transient — мутируют modalOpen
+    // напрямую без изменения URL.
+
+    type Route =
+        | { kind: 'home' }
+        | { kind: 'chat' }
+        | { kind: 'doc'; path: string }
+        | { kind: 'code'; path: string };
+
+    function parseHash(): Route {
+        const src = decodeURIComponent(location.hash.slice(1));
+        if (!src) return { kind: 'home' };
+        if (src === 'chat') return { kind: 'chat' };
+        if (src.startsWith('code/')) return { kind: 'code', path: src.slice(5) };
+        const path = src.startsWith('docs/') ? src.slice(5) : src;
+        return { kind: 'doc', path };
+    }
+
+    function routeToUrl(r: Route): string {
+        const base = location.pathname + location.search;
+        switch (r.kind) {
+            case 'home': return base;
+            case 'chat': return `${base}#chat`;
+            case 'doc':  return `${base}#${encodeURIComponent(r.path)}`;
+            case 'code': return `${base}#${encodeURIComponent('code/' + r.path)}`;
+        }
+    }
+
+    function navigate(r: Route) {
+        const url = routeToUrl(r);
+        if (url === location.pathname + location.search + location.hash) return;
+        history.pushState(null, '', url);
+        applyHash();
+    }
+
+    function navigateReplace(r: Route) {
+        const url = routeToUrl(r);
+        history.replaceState(null, '', url);
+        applyHash();
+    }
+
     function openModal(tab: ContentTab, path: string | null = null) {
         modalTab = tab;
         modalOpenPath = path;
@@ -77,43 +132,51 @@
     }
 
     function closeModal() {
-        modalOpen = false;
-        modalOpenPath = null;
-        closeImagePreview();
-        // Если модалка была открыта через doc/code хэш — идём назад в history.
-        // Если через slash-команду (URL не менялся, хэш = '' или '#chat') — не трогаем URL.
-        const hash = decodeURIComponent(location.hash.slice(1));
-        if (hash && hash !== 'chat') {
-            history.back();
+        // Image preview — особый случай: живёт поверх обычной модалки,
+        // не привязан к URL. Закрытие НЕ меняет хэш.
+        if (imagePreviewState.value) {
+            closeImagePreview();
+            modalOpen = false;
+            return;
+        }
+        const route = parseHash();
+        if (route.kind === 'doc' || route.kind === 'code') {
+            // Модалка открыта через хэш → возвращаемся туда, откуда пришли.
+            // Если chatMode=true, значит документ был открыт из чата.
+            navigateReplace(chatMode ? { kind: 'chat' } : { kind: 'home' });
+        } else {
+            // Slash-команда или autoOpenTab — модалка вне URL, просто закрываем.
+            modalOpen = false;
+            modalOpenPath = null;
         }
     }
 
     function applyHash() {
-        const src = decodeURIComponent(location.hash.slice(1));
-        if (!src) {
-            if (modalOpen && !imagePreviewState.value) {
-                modalOpen = false;
-                modalOpenPath = null;
-                closeImagePreview();
-            }
-            if (chatMode) {
+        const route = parseHash();
+        switch (route.kind) {
+            case 'home':
+                if (modalOpen && !imagePreviewState.value) {
+                    modalOpen = false;
+                    modalOpenPath = null;
+                }
                 chatMode = false;
-            }
-            return;
-        }
-        if (src === 'chat') {
-            if (modalOpen) { modalOpen = false; modalOpenPath = null; }
-            if (!chatMode) {
+                return;
+            case 'chat': {
+                if (modalOpen && !imagePreviewState.value) {
+                    modalOpen = false;
+                    modalOpenPath = null;
+                }
+                const wasChatMode = chatMode;
                 chatMode = true;
-                tick().then(scrollMessages);
+                if (!wasChatMode) tick().then(scrollMessages);
+                return;
             }
-            return;
-        }
-        if (isCodeSource(src)) {
-            openModal("code", src.slice(5));
-        } else {
-            const docPath = src.startsWith("docs/") ? src.slice(5) : src;
-            openModal("docs", docPath);
+            case 'doc':
+                openModal('docs', route.path);
+                return;
+            case 'code':
+                openModal('code', route.path);
+                return;
         }
     }
 
@@ -288,14 +351,11 @@
     let chatMode = $state(false);
 
     function openChatMode() {
-        chatMode = true;
-        location.hash = 'chat';
-        tick().then(scrollMessages);
+        navigate({ kind: 'chat' });
     }
 
     function closeChatMode() {
-        chatMode = false;
-        history.back();
+        navigateReplace({ kind: 'home' });
     }
 
     // ─── Autocomplete ───────────────────────────────────────────────────────────
@@ -617,8 +677,6 @@
 
         window.addEventListener("keydown", onGlobalKey);
 
-        if (autoOpenTab) openModal(autoOpenTab);
-
         (async () => {
             try {
                 pushLog("req", `GET /api/suggestions`);
@@ -644,6 +702,9 @@
         window.addEventListener("hashchange", applyHash);
         window.addEventListener("popstate", applyHash);
         applyHash();
+        // autoOpenTab (для /code, /timeline страниц) — поверх состояния из URL.
+        // Если хэш указывает на документ — applyHash уже открыл модалку, не перетираем.
+        if (autoOpenTab && !modalOpen) openModal(autoOpenTab);
 
         return () => {
             window.removeEventListener("keydown", onGlobalKey);
@@ -1110,7 +1171,12 @@
     }
 
     function openSourceDoc(src: string) {
-        location.hash = encodeURIComponent(src);
+        if (isCodeSource(src)) {
+            navigate({ kind: 'code', path: src.slice(5) });
+        } else {
+            const path = src.startsWith('docs/') ? src.slice(5) : src;
+            navigate({ kind: 'doc', path });
+        }
     }
 
     function handleContentClick(e: MouseEvent) {
