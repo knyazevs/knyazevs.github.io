@@ -95,28 +95,30 @@ fun Route.chatRoutes(
             writeStringUtf8(": open\n\n")
             flush()
 
-            val result = when (decision) {
-                is RoutingDecision.UseSkill -> {
+            val result = when {
+                mode == AgentMode.FULL_CONTEXT -> {
+                    val tag = if (decision is RoutingDecision.UseSkill) "SKILL-override→FULL-CONTEXT" else "GENERIC/FULL-CONTEXT"
+                    println("[CHAT] → $tag path")
+                    fullContextPipeline.ask(question)
+                }
+                decision is RoutingDecision.UseSkill -> {
                     println("[CHAT] → SKILL path: '${decision.name}'")
                     val skill = skills[decision.name]
                         ?: error("Routing returned skill '${decision.name}' not found in registry")
                     skillExecutor.execute(skill, question)
                 }
-                RoutingDecision.GenericRag -> when (mode) {
-                    AgentMode.AGENTIC -> {
-                        println("[CHAT] → GENERIC/AGENTIC path")
-                        agenticPipeline.ask(question)
-                    }
-                    AgentMode.FULL_CONTEXT -> {
-                        println("[CHAT] → GENERIC/FULL-CONTEXT path")
-                        fullContextPipeline.ask(question)
-                    }
-                    AgentMode.RAG -> {
-                        println("[CHAT] → GENERIC/RAG path (legacy)")
-                        ragPipeline.ask(question)
-                    }
+                decision == RoutingDecision.GenericRag && mode == AgentMode.AGENTIC -> {
+                    println("[CHAT] → GENERIC/AGENTIC path")
+                    agenticPipeline.ask(question)
                 }
-                RoutingDecision.Irrelevant -> error("unreachable: Irrelevant handled above")
+                decision == RoutingDecision.GenericRag && mode == AgentMode.RAG -> {
+                    println("[CHAT] → GENERIC/RAG path (legacy)")
+                    ragPipeline.ask(question)
+                }
+                else -> {
+                    println("[CHAT] → fallback FULL-CONTEXT path")
+                    fullContextPipeline.ask(question)
+                }
             }
 
             // ADR-025: блоки эмитятся ТОЛЬКО через tool-calls LLM (B-часть). Это гарантирует,
