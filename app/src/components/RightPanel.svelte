@@ -647,11 +647,13 @@
         })();
 
         window.addEventListener("hashchange", applyHash);
+        window.addEventListener("popstate", applyHash);
         if (location.hash) applyHash();
 
         return () => {
             window.removeEventListener("keydown", onGlobalKey);
             window.removeEventListener("hashchange", applyHash);
+            window.removeEventListener("popstate", applyHash);
         };
     });
 
