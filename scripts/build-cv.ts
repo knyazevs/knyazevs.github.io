@@ -102,6 +102,17 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/** Escape HTML, rendering markdown links `[text](url)` as anchors. */
+function escWithLinks(s: string): string {
+  return s
+    .split(/(\[[^\]]+\]\([^)\s]+\))/g)
+    .map((part) => {
+      const m = part.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
+      return m ? `<a href="${esc(m[2])}">${esc(m[1])}</a>` : esc(part);
+    })
+    .join("");
+}
+
 // ─── Data loading ─────────────────────────────────────────────────────────────
 
 function loadProfile(): {
@@ -340,7 +351,7 @@ function buildHtml(
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean)
-    .map((l) => `<p>${esc(l)}</p>`)
+    .map((l) => `<p>${escWithLinks(l)}</p>`)
     .join("");
 
   const strengthsHtml = strengths.length
@@ -367,6 +378,7 @@ function buildHtml(
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<title>${esc(profile.name)} — ${esc(profile.title)}</title>
 <style>
   /* ── Reset ── */
   * { box-sizing: border-box; margin: 0; padding: 0; }
