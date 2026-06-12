@@ -7,7 +7,10 @@
     import ContentModal, { type ContentTab } from "./ContentModal.svelte";
     import DebugLogStream from "./DebugLogStream.svelte";
     import { pushLog } from "../lib/debugLog.svelte";
-    import { imagePreviewState, closeImagePreview } from "../lib/imagePreview.svelte";
+    import {
+        imagePreviewState,
+        closeImagePreview,
+    } from "../lib/imagePreview.svelte";
     import { type UiBlock } from "./blocks/BlockRegistry";
     import TextBlock from "./blocks/TextBlock.svelte";
     import ImageBlock from "./blocks/ImageBlock.svelte";
@@ -38,8 +41,12 @@
                 content: m.answer,
             };
             const visual: UiBlock[] = Array.isArray(m.blocks)
-                ? m.blocks.filter((b: any) => b && b.type !== "text")
-                      .map((b: any, i: number) => ({ id: b.id ?? `legacy-vis-${i}`, ...b }))
+                ? m.blocks
+                      .filter((b: any) => b && b.type !== "text")
+                      .map((b: any, i: number) => ({
+                          id: b.id ?? `legacy-vis-${i}`,
+                          ...b,
+                      }))
                 : [];
             return {
                 question: m.question ?? "",
@@ -88,34 +95,40 @@
     // Image preview работает transient — мутирует modalOpen напрямую без хэша.
 
     type Route =
-        | { kind: 'home' }
-        | { kind: 'chat' }
-        | { kind: 'tab'; tab: ContentTab }
-        | { kind: 'doc'; path: string }
-        | { kind: 'code'; path: string };
+        | { kind: "home" }
+        | { kind: "chat" }
+        | { kind: "tab"; tab: ContentTab }
+        | { kind: "doc"; path: string }
+        | { kind: "code"; path: string };
 
     function parseHash(): Route {
         const src = decodeURIComponent(location.hash.slice(1));
-        if (!src) return { kind: 'home' };
-        if (src === 'chat') return { kind: 'chat' };
+        if (!src) return { kind: "home" };
+        if (src === "chat") return { kind: "chat" };
         // Бэр-имена без '/' — табы. doc/code пути всегда содержат '/'
         // (они под подпапками docs/{adr,blog,...} или code/{server,app,...}).
-        if (src === 'docs' || src === 'code' || src === 'timeline') {
-            return { kind: 'tab', tab: src };
+        if (src === "docs" || src === "code" || src === "timeline") {
+            return { kind: "tab", tab: src };
         }
-        if (src.startsWith('code/')) return { kind: 'code', path: src.slice(5) };
-        const path = src.startsWith('docs/') ? src.slice(5) : src;
-        return { kind: 'doc', path };
+        if (src.startsWith("code/"))
+            return { kind: "code", path: src.slice(5) };
+        const path = src.startsWith("docs/") ? src.slice(5) : src;
+        return { kind: "doc", path };
     }
 
     function routeToUrl(r: Route): string {
         const base = location.pathname + location.search;
         switch (r.kind) {
-            case 'home': return base;
-            case 'chat': return `${base}#chat`;
-            case 'tab':  return `${base}#${r.tab}`;
-            case 'doc':  return `${base}#${encodeURIComponent(r.path)}`;
-            case 'code': return `${base}#${encodeURIComponent('code/' + r.path)}`;
+            case "home":
+                return base;
+            case "chat":
+                return `${base}#chat`;
+            case "tab":
+                return `${base}#${r.tab}`;
+            case "doc":
+                return `${base}#${encodeURIComponent(r.path)}`;
+            case "code":
+                return `${base}#${encodeURIComponent("code/" + r.path)}`;
         }
     }
 
@@ -124,13 +137,13 @@
         if (url === location.pathname + location.search + location.hash) return;
         // ВНИМАНИЕ: используем window.history, т.к. локальная переменная
         // history: Message[] затеняет глобальный history.
-        window.history.pushState(null, '', url);
+        window.history.pushState(null, "", url);
         applyHash();
     }
 
     function navigateReplace(r: Route) {
         const url = routeToUrl(r);
-        window.history.replaceState(null, '', url);
+        window.history.replaceState(null, "", url);
         applyHash();
     }
 
@@ -149,10 +162,14 @@
             return;
         }
         const route = parseHash();
-        if (route.kind === 'doc' || route.kind === 'code' || route.kind === 'tab') {
+        if (
+            route.kind === "doc" ||
+            route.kind === "code" ||
+            route.kind === "tab"
+        ) {
             // Модалка открыта через хэш → возвращаемся туда, откуда пришли.
             // Если chatMode=true, значит модалка была открыта из чата.
-            navigateReplace(chatMode ? { kind: 'chat' } : { kind: 'home' });
+            navigateReplace(chatMode ? { kind: "chat" } : { kind: "home" });
         } else {
             // Модалка открыта вне URL (например, через autoOpenTab) — просто закрываем.
             modalOpen = false;
@@ -163,14 +180,14 @@
     function applyHash() {
         const route = parseHash();
         switch (route.kind) {
-            case 'home':
+            case "home":
                 if (modalOpen && !imagePreviewState.value) {
                     modalOpen = false;
                     modalOpenPath = null;
                 }
                 chatMode = false;
                 return;
-            case 'chat': {
+            case "chat": {
                 if (modalOpen && !imagePreviewState.value) {
                     modalOpen = false;
                     modalOpenPath = null;
@@ -180,14 +197,14 @@
                 if (!wasChatMode) tick().then(scrollMessages);
                 return;
             }
-            case 'tab':
+            case "tab":
                 openModal(route.tab, null);
                 return;
-            case 'doc':
-                openModal('docs', route.path);
+            case "doc":
+                openModal("docs", route.path);
                 return;
-            case 'code':
-                openModal('code', route.path);
+            case "code":
+                openModal("code", route.path);
                 return;
         }
     }
@@ -247,8 +264,12 @@
     function stopVoiceAnalysis() {
         if (voiceRaf) cancelAnimationFrame(voiceRaf);
         voiceRaf = 0;
-        try { voiceSource?.disconnect(); } catch {}
-        try { voiceAnalyser?.disconnect(); } catch {}
+        try {
+            voiceSource?.disconnect();
+        } catch {}
+        try {
+            voiceAnalyser?.disconnect();
+        } catch {}
         voiceSource = null;
         voiceAnalyser = null;
         if (voiceAudioCtx) {
@@ -290,23 +311,27 @@
         debugMode = false;
         debugAcknowledged = false;
         orbClickCount = 0;
-        try { sessionStorage.removeItem(DEBUG_KEY); } catch {}
+        try {
+            sessionStorage.removeItem(DEBUG_KEY);
+        } catch {}
         flashPromo("Debug режим: OFF", 1600);
     }
 
     const PROMO_STAGES = [
-        { at: 1,  msg: "Что-то зашевелилось…" },
-        { at: 3,  msg: "Хм, интересно." },
-        { at: 5,  msg: "Вы близко." },
-        { at: 7,  msg: "Вы почти разработчик." },
-        { at: 9,  msg: "Ещё чуть-чуть…" },
+        { at: 1, msg: "Что-то зашевелилось…" },
+        { at: 3, msg: "Хм, интересно." },
+        { at: 5, msg: "Вы близко." },
+        { at: 7, msg: "Вы почти разработчик." },
+        { at: 9, msg: "Ещё чуть-чуть…" },
         { at: 10, msg: "Поздравляем — вы разработчик.", enableDebug: true },
     ];
 
     function flashPromo(msg: string, ms = 1800) {
         promoMessage = msg;
         if (promoTimer) clearTimeout(promoTimer);
-        promoTimer = setTimeout(() => { promoMessage = ""; }, ms);
+        promoTimer = setTimeout(() => {
+            promoMessage = "";
+        }, ms);
     }
 
     let debugAcknowledged = false;
@@ -327,15 +352,24 @@
         if (stage.enableDebug) {
             debugMode = true;
             debugAcknowledged = true;
-            try { sessionStorage.setItem(DEBUG_KEY, "1"); } catch {}
+            try {
+                sessionStorage.setItem(DEBUG_KEY, "1");
+            } catch {}
         }
     }
 
     // Konami: ↑↑↓↓←→←→BA
     const KONAMI = [
-        "ArrowUp","ArrowUp","ArrowDown","ArrowDown",
-        "ArrowLeft","ArrowRight","ArrowLeft","ArrowRight",
-        "KeyB","KeyA",
+        "ArrowUp",
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowLeft",
+        "ArrowRight",
+        "KeyB",
+        "KeyA",
     ];
     let konamiIdx = 0;
 
@@ -363,11 +397,11 @@
     let chatMode = $state(false);
 
     function openChatMode() {
-        navigate({ kind: 'chat' });
+        navigate({ kind: "chat" });
     }
 
     function closeChatMode() {
-        navigateReplace({ kind: 'home' });
+        navigateReplace({ kind: "home" });
     }
 
     // ─── Autocomplete ───────────────────────────────────────────────────────────
@@ -419,9 +453,15 @@
                     body: JSON.stringify({ input: trimmed }),
                     signal: acAbort.signal,
                 });
-                if (!res.ok) { pushLog("err", `autocomplete ${res.status}`); return; }
+                if (!res.ok) {
+                    pushLog("err", `autocomplete ${res.status}`);
+                    return;
+                }
                 const data = await res.json();
-                pushLog("res", `autocomplete 200${data.completion ? ` → +${data.completion.length}ch` : " ∅"}`);
+                pushLog(
+                    "res",
+                    `autocomplete 200${data.completion ? ` → +${data.completion.length}ch` : " ∅"}`,
+                );
                 // Only show if input hasn't changed while we waited
                 if (inputText.trim() === trimmed && data.completion) {
                     ghostText = data.completion;
@@ -449,23 +489,98 @@
     }
 
     const SLASH_COMMANDS: SlashCommand[] = [
-        { name: "/cv",         description: "скачать резюме (PDF)",    handler: () => { window.open("/cv.pdf", "_blank"); } },
-        { name: "/blog",       description: "записи в блоге",          handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
-        { name: "/adr",        description: "архитектурные решения",   handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
-        { name: "/code",       description: "браузер кода",            handler: () => navigate({ kind: 'tab', tab: 'code' }) },
-        { name: "/timeline",   description: "история коммитов",        handler: () => navigate({ kind: 'tab', tab: 'timeline' }) },
-        { name: "/skills",     description: "навыки",                  handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
-        { name: "/experience", description: "опыт работы",             handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
-        { name: "/profile",    description: "обо мне",                 handler: () => navigate({ kind: 'tab', tab: 'docs' }) },
-        { name: "/github",     description: "репозиторий на GitHub",   handler: () => { window.open("https://github.com/knyazevs/sknyazev", "_blank"); } },
-        { name: "/contact",    description: "контакты",                handler: () => injectReply("/contact", CONTACT_REPLY) },
-        { name: "/help",       description: "список всех команд",      handler: () => injectReply("/help", helpReply()) },
-        { name: "/clear",      description: "очистить историю чата",   handler: clearChat },
-        { name: "/theme",      description: "переключить тему",        handler: () => { toggleTheme(); } },
-        { name: "/whoami",     description: "кто ты такой",            handler: () => injectReply("/whoami", WHOAMI_REPLY) },
-        { name: "/promote",    description: "серьёзный аргумент",      handler: () => injectReply("/promote", PROMOTE_REPLY) },
-        { name: "/sudo",       description: "стать root",              handler: () => injectReply("/sudo", "Permission denied. Nice try. 🤨") },
-        { name: "/matrix",     description: "follow the white rabbit", handler: activateMatrix },
+        {
+            name: "/cv",
+            description: "скачать резюме (PDF)",
+            handler: () => {
+                window.open("/cv.pdf", "_blank");
+            },
+        },
+        {
+            name: "/blog",
+            description: "записи в блоге",
+            handler: () => navigate({ kind: "tab", tab: "docs" }),
+        },
+        {
+            name: "/adr",
+            description: "архитектурные решения",
+            handler: () => navigate({ kind: "tab", tab: "docs" }),
+        },
+        {
+            name: "/code",
+            description: "браузер кода",
+            handler: () => navigate({ kind: "tab", tab: "code" }),
+        },
+        {
+            name: "/timeline",
+            description: "история коммитов",
+            handler: () => navigate({ kind: "tab", tab: "timeline" }),
+        },
+        {
+            name: "/skills",
+            description: "навыки",
+            handler: () => navigate({ kind: "tab", tab: "docs" }),
+        },
+        {
+            name: "/experience",
+            description: "опыт работы",
+            handler: () => navigate({ kind: "tab", tab: "docs" }),
+        },
+        {
+            name: "/profile",
+            description: "обо мне",
+            handler: () => navigate({ kind: "tab", tab: "docs" }),
+        },
+        {
+            name: "/github",
+            description: "репозиторий на GitHub",
+            handler: () => {
+                window.open("https://github.com/knyazevs/sknyazev", "_blank");
+            },
+        },
+        {
+            name: "/contact",
+            description: "контакты",
+            handler: () => injectReply("/contact", CONTACT_REPLY),
+        },
+        {
+            name: "/help",
+            description: "список всех команд",
+            handler: () => injectReply("/help", helpReply()),
+        },
+        {
+            name: "/clear",
+            description: "очистить историю чата",
+            handler: clearChat,
+        },
+        {
+            name: "/theme",
+            description: "переключить тему",
+            handler: () => {
+                toggleTheme();
+            },
+        },
+        {
+            name: "/whoami",
+            description: "кто ты такой",
+            handler: () => injectReply("/whoami", WHOAMI_REPLY),
+        },
+        {
+            name: "/promote",
+            description: "серьёзный аргумент",
+            handler: () => injectReply("/promote", PROMOTE_REPLY),
+        },
+        {
+            name: "/sudo",
+            description: "стать root",
+            handler: () =>
+                injectReply("/sudo", "Permission denied. Nice try. 🤨"),
+        },
+        {
+            name: "/matrix",
+            description: "follow the white rabbit",
+            handler: activateMatrix,
+        },
     ];
 
     const CONTACT_REPLY =
@@ -490,9 +605,9 @@
         "Если ищете Technical Lead / Architect — напишите: `s_knyazev@vk.com`.";
 
     function helpReply(): string {
-        const lines = SLASH_COMMANDS
-            .filter((c) => c.name !== "/help")
-            .map((c) => `- \`${c.name}\` — ${c.description}`);
+        const lines = SLASH_COMMANDS.filter((c) => c.name !== "/help").map(
+            (c) => `- \`${c.name}\` — ${c.description}`,
+        );
         return "**Доступные команды**\n\n" + lines.join("\n");
     }
 
@@ -519,7 +634,9 @@
     let matrixCanvas: HTMLCanvasElement | undefined = $state();
     function activateMatrix() {
         matrixMode = true;
-        setTimeout(() => { matrixMode = false; }, 6000);
+        setTimeout(() => {
+            matrixMode = false;
+        }, 6000);
     }
 
     $effect(() => {
@@ -590,9 +707,8 @@
     $effect(() => {
         // Keep active slash item visible as user navigates the list.
         if (!slashOpen || !slashListEl) return;
-        const active = slashListEl.querySelector<HTMLElement>(
-            ".slash-item.active",
-        );
+        const active =
+            slashListEl.querySelector<HTMLElement>(".slash-item.active");
         active?.scrollIntoView({ block: "nearest" });
         void slashIdx;
     });
@@ -619,8 +735,11 @@
         slashOpen = false;
         slashQuery = "";
         clearAutocomplete();
-        try { await cmd.handler(); }
-        catch (e) { console.warn("slash handler failed", e); }
+        try {
+            await cmd.handler();
+        } catch (e) {
+            console.warn("slash handler failed", e);
+        }
     }
 
     function tryExecuteSlashFromInput(): boolean {
@@ -628,10 +747,16 @@
         if (!raw.startsWith("/")) return false;
         // Exact match first
         const exact = SLASH_COMMANDS.find((c) => c.name === raw);
-        if (exact) { executeSlash(exact); return true; }
+        if (exact) {
+            executeSlash(exact);
+            return true;
+        }
         // Otherwise take currently highlighted suggestion
         const pick = slashMatches[slashIdx];
-        if (pick) { executeSlash(pick); return true; }
+        if (pick) {
+            executeSlash(pick);
+            return true;
+        }
         return false;
     }
 
@@ -679,10 +804,16 @@
             ttsEnabled = localStorage.getItem("tts") !== "off";
         }
 
-        try { debugMode = sessionStorage.getItem(DEBUG_KEY) === "1"; } catch {}
+        try {
+            debugMode = sessionStorage.getItem(DEBUG_KEY) === "1";
+        } catch {}
         try {
             const savedMode = sessionStorage.getItem(AGENT_MODE_KEY);
-            if (savedMode === "agentic" || savedMode === "full_context" || savedMode === "rag") {
+            if (
+                savedMode === "agentic" ||
+                savedMode === "full_context" ||
+                savedMode === "rag"
+            ) {
                 agentMode = savedMode;
             }
         } catch {}
@@ -699,7 +830,10 @@
                     const data = await res.json();
                     if (data.suggestions?.length) {
                         suggestions = data.suggestions;
-                        pushLog("res", `suggestions 200 n=${data.suggestions.length}`);
+                        pushLog(
+                            "res",
+                            `suggestions 200 n=${data.suggestions.length}`,
+                        );
                     } else {
                         pushLog("res", `suggestions 200 ∅`);
                     }
@@ -716,8 +850,8 @@
         applyHash();
         // autoOpenTab (для /code, /timeline Astro-страниц) — поверх состояния из URL.
         // Если хэш уже указывает на что-то — applyHash отработал, не перетираем.
-        if (autoOpenTab && parseHash().kind === 'home') {
-            navigateReplace({ kind: 'tab', tab: autoOpenTab });
+        if (autoOpenTab && parseHash().kind === "home") {
+            navigateReplace({ kind: "tab", tab: autoOpenTab });
         }
 
         return () => {
@@ -726,7 +860,6 @@
             window.removeEventListener("popstate", applyHash);
         };
     });
-
 
     async function scrollMessages() {
         await tick();
@@ -758,8 +891,14 @@
             pushLog("req", `POST /api/chat len=${questionText.length}`);
             const response = await fetch(`${BACKEND_URL}/api/chat`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-                body: JSON.stringify({ question: questionText, mode: agentMode }),
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(await authHeaders()),
+                },
+                body: JSON.stringify({
+                    question: questionText,
+                    mode: agentMode,
+                }),
             });
 
             if (!response.ok) {
@@ -797,20 +936,29 @@
                 const sentenceEnd = unsent.search(/[.!?。]\s/);
                 if (sentenceEnd < 0) return;
                 const sendUpTo = ttsSentBuffer.length + sentenceEnd + 1;
-                const chunk = ttsFullText.slice(ttsSentBuffer.length, sendUpTo).trim();
+                const chunk = ttsFullText
+                    .slice(ttsSentBuffer.length, sendUpTo)
+                    .trim();
                 if (!chunk) return;
                 ttsQueue.push(fetchAudio(chunk));
                 ttsSentBuffer = ttsFullText.slice(0, sendUpTo);
             };
 
-            const applyDedup = (incoming: UiBlock, prev: UiBlock[]): UiBlock[] | null => {
+            const applyDedup = (
+                incoming: UiBlock,
+                prev: UiBlock[],
+            ): UiBlock[] | null => {
                 if (incoming.type === "text_with_image") {
                     const url = incoming.image.url;
-                    return prev.filter(b => !(b.type === "image" && b.url === url));
+                    return prev.filter(
+                        (b) => !(b.type === "image" && b.url === url),
+                    );
                 }
                 if (incoming.type === "image") {
                     const already = prev.some(
-                        b => b.type === "text_with_image" && b.image.url === incoming.url,
+                        (b) =>
+                            b.type === "text_with_image" &&
+                            b.image.url === incoming.url,
                     );
                     if (already) return null;
                 }
@@ -836,10 +984,19 @@
                     if (parsed.block_start) {
                         const { id, type } = parsed.block_start;
                         if (type === "text") {
-                            const textBlock: UiBlock = { id, type: "text", content: "", streaming: true };
+                            const textBlock: UiBlock = {
+                                id,
+                                type: "text",
+                                content: "",
+                                streaming: true,
+                            };
                             blocksById.set(id, textBlock);
-                            history[msgIdx].blocks = [...history[msgIdx].blocks, textBlock];
-                            if (ttsTrackedBlockId === null) ttsTrackedBlockId = id;
+                            history[msgIdx].blocks = [
+                                ...history[msgIdx].blocks,
+                                textBlock,
+                            ];
+                            if (ttsTrackedBlockId === null)
+                                ttsTrackedBlockId = id;
                             pushLog("evt", `block_start:text ${id}`);
                             if (chatMode) await scrollMessages();
                         }
@@ -847,20 +1004,31 @@
                         const { id, delta } = parsed.token;
                         const block = blocksById.get(id);
                         if (block && block.type === "text") {
-                            const updated: UiBlock = { ...block, content: block.content + delta };
+                            const updated: UiBlock = {
+                                ...block,
+                                content: block.content + delta,
+                            };
                             blocksById.set(id, updated);
-                            history[msgIdx].blocks = history[msgIdx].blocks.map(b =>
-                                b.id === id ? updated : b,
+                            history[msgIdx].blocks = history[msgIdx].blocks.map(
+                                (b) => (b.id === id ? updated : b),
                             );
                             tokenCount += 1;
                             if (tokenCount - tokenBatchStart >= TOKEN_BATCH) {
-                                pushLog("evt", `tokens ${tokenBatchStart + 1}..${tokenCount}`);
+                                pushLog(
+                                    "evt",
+                                    `tokens ${tokenBatchStart + 1}..${tokenCount}`,
+                                );
                                 tokenBatchStart = tokenCount;
                             }
                             if (id === ttsTrackedBlockId) {
-                                if (!detailStarted && updated.content.includes(DETAIL_MARKER)) {
+                                if (
+                                    !detailStarted &&
+                                    updated.content.includes(DETAIL_MARKER)
+                                ) {
                                     detailStarted = true;
-                                    ttsFullText = updated.content.split(DETAIL_MARKER)[0].trim();
+                                    ttsFullText = updated.content
+                                        .split(DETAIL_MARKER)[0]
+                                        .trim();
                                 } else if (!detailStarted) {
                                     ttsFullText = updated.content;
                                 }
@@ -876,16 +1044,22 @@
                         const { id } = parsed.block_end;
                         const block = blocksById.get(id);
                         if (block && block.type === "text") {
-                            const updated: UiBlock = { ...block, streaming: false };
+                            const updated: UiBlock = {
+                                ...block,
+                                streaming: false,
+                            };
                             blocksById.set(id, updated);
-                            history[msgIdx].blocks = history[msgIdx].blocks.map(b =>
-                                b.id === id ? updated : b,
+                            history[msgIdx].blocks = history[msgIdx].blocks.map(
+                                (b) => (b.id === id ? updated : b),
                             );
                             pushLog("evt", `block_end ${id}`);
                         }
                     } else if (parsed.block) {
                         const incoming = parsed.block as UiBlock;
-                        const next = applyDedup(incoming, history[msgIdx].blocks);
+                        const next = applyDedup(
+                            incoming,
+                            history[msgIdx].blocks,
+                        );
                         if (next === null) {
                             pushLog("evt", `block:${incoming.type} dedup`);
                         } else {
@@ -899,7 +1073,10 @@
                         pushLog("evt", `sources[${parsed.sources.length}]`);
                     } else if (parsed.suggestions) {
                         followUps = parsed.suggestions;
-                        pushLog("evt", `suggestions[${parsed.suggestions.length}]`);
+                        pushLog(
+                            "evt",
+                            `suggestions[${parsed.suggestions.length}]`,
+                        );
                     } else if (parsed.error) {
                         pushLog("err", `stream error: ${parsed.error}`);
                         throw new Error(parsed.error);
@@ -910,12 +1087,14 @@
             pushLog("res", `chat stream done · ${tokenCount} tokens`);
 
             if (ttsEnabled && !detailStarted) {
-                const remaining = ttsFullText.slice(ttsSentBuffer.length).trim();
+                const remaining = ttsFullText
+                    .slice(ttsSentBuffer.length)
+                    .trim();
                 if (remaining) ttsQueue.push(fetchAudio(remaining));
             }
 
             // Защита: если сервер не закрыл text-блок явно, гасим streaming-флаги.
-            history[msgIdx].blocks = history[msgIdx].blocks.map(b => {
+            history[msgIdx].blocks = history[msgIdx].blocks.map((b) => {
                 if (b.type === "text" && b.streaming) {
                     const closed = { ...b, streaming: false };
                     blocksById.set(b.id, closed);
@@ -946,7 +1125,7 @@
                 e instanceof Error ? e.message : "Что-то пошло не так";
             streamingIdx = null;
             const hasAnyText = history[msgIdx]?.blocks?.some(
-                b => b.type === "text" && b.content.trim().length > 0,
+                (b) => b.type === "text" && b.content.trim().length > 0,
             );
             if (!hasAnyText) {
                 history = history.slice(0, msgIdx);
@@ -973,7 +1152,10 @@
         pushLog("req", `POST /api/tts len=${text.length}`);
         const response = await fetch(`${BACKEND_URL}/api/tts`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+            headers: {
+                "Content-Type": "application/json",
+                ...(await authHeaders()),
+            },
             body: JSON.stringify({ text }),
         });
         if (!response.ok) {
@@ -1057,7 +1239,10 @@
                 throw new Error(`ASR error: ${response.status}`);
             }
             const { text } = await response.json();
-            pushLog("res", `asr 200 → "${(text ?? "").slice(0, 24)}${(text ?? "").length > 24 ? "…" : ""}"`);
+            pushLog(
+                "res",
+                `asr 200 → "${(text ?? "").slice(0, 24)}${(text ?? "").length > 24 ? "…" : ""}"`,
+            );
             if (text?.trim()) {
                 await submitQuery(text.trim());
             } else {
@@ -1092,7 +1277,8 @@
             }
             if (e.key === "ArrowUp") {
                 e.preventDefault();
-                slashIdx = (slashIdx - 1 + slashMatches.length) % slashMatches.length;
+                slashIdx =
+                    (slashIdx - 1 + slashMatches.length) % slashMatches.length;
                 return;
             }
             if (e.key === "Tab") {
@@ -1186,10 +1372,10 @@
 
     function openSourceDoc(src: string) {
         if (isCodeSource(src)) {
-            navigate({ kind: 'code', path: src.slice(5) });
+            navigate({ kind: "code", path: src.slice(5) });
         } else {
-            const path = src.startsWith('docs/') ? src.slice(5) : src;
-            navigate({ kind: 'doc', path });
+            const path = src.startsWith("docs/") ? src.slice(5) : src;
+            navigate({ kind: "doc", path });
         }
     }
 
@@ -1273,7 +1459,12 @@
 </script>
 
 <!-- ─── Full-screen orb background ──────────────────────────────────────── -->
-<div class="orb-bg" class:chat-mode={chatMode} class:matrix={matrixMode} aria-hidden="true">
+<div
+    class="orb-bg"
+    class:chat-mode={chatMode}
+    class:matrix={matrixMode}
+    aria-hidden="true"
+>
     {#if debugMode}
         <DebugLogStream />
         <!-- Селектор режима агента (ADR-027). Виден только в debug-режиме. null = сервер использует AGENT_DEFAULT_MODE. -->
@@ -1284,25 +1475,28 @@
                 class:active={agentMode === null}
                 onclick={() => setAgentMode(null)}
                 title="Использовать серверный дефолт (AGENT_DEFAULT_MODE)."
-            >auto</button>
+                >auto</button
+            >
             <button
                 type="button"
                 class:active={agentMode === "agentic"}
                 onclick={() => setAgentMode("agentic")}
                 title="Карта корпуса + навигационные тулы. Дёшево, прозрачно."
-            >agentic</button>
+                >agentic</button
+            >
             <button
                 type="button"
                 class:active={agentMode === "full_context"}
                 onclick={() => setAgentMode("full_context")}
                 title="Весь корпус в промпте. Дорого cold, дёшево warm."
-            >full-ctx</button>
+                >full-ctx</button
+            >
             <button
                 type="button"
                 class:active={agentMode === "rag"}
                 onclick={() => setAgentMode("rag")}
-                title="Legacy: HyDE + BM25 + RRF retrieval."
-            >rag</button>
+                title="Legacy: HyDE + BM25 + RRF retrieval.">rag</button
+            >
         </div>
     {/if}
     <CosmicOrb
@@ -1316,7 +1510,8 @@
 </div>
 
 {#if matrixMode}
-    <canvas class="matrix-rain" bind:this={matrixCanvas} aria-hidden="true"></canvas>
+    <canvas class="matrix-rain" bind:this={matrixCanvas} aria-hidden="true"
+    ></canvas>
 {/if}
 
 <!-- Клик-таргет: круг над центром орба.
@@ -1371,7 +1566,7 @@
             {/if}
             <button
                 class="icon-btn"
-                onclick={() => navigate({ kind: 'tab', tab: 'timeline' })}
+                onclick={() => navigate({ kind: "tab", tab: "timeline" })}
                 aria-label="История проекта"
                 title="История"
             >
@@ -1390,7 +1585,7 @@
             </button>
             <button
                 class="icon-btn"
-                onclick={() => navigate({ kind: 'tab', tab: 'code' })}
+                onclick={() => navigate({ kind: "tab", tab: "code" })}
                 aria-label="Код проекта"
                 title="Код"
             >
@@ -1410,7 +1605,7 @@
             </button>
             <button
                 class="icon-btn"
-                onclick={() => navigate({ kind: 'tab', tab: 'docs' })}
+                onclick={() => navigate({ kind: "tab", tab: "docs" })}
                 aria-label="Документация"
                 title="Документация"
             >
@@ -1559,7 +1754,9 @@
                     {#if !isStreaming && msg.sources?.length}
                         {@const expanded = expandedSources.has(i)}
                         {@const overflow = msg.sources.length > SOURCES_VISIBLE}
-                        {@const visible = expanded ? msg.sources : msg.sources.slice(0, SOURCES_VISIBLE)}
+                        {@const visible = expanded
+                            ? msg.sources
+                            : msg.sources.slice(0, SOURCES_VISIBLE)}
                         <div class="msg-sources">
                             {#each visible as src, si}
                                 <button
@@ -1573,7 +1770,11 @@
                             {#if overflow && !expanded}
                                 <button
                                     class="source-chip source-chip--more"
-                                    onclick={() => { const s = new Set(expandedSources); s.add(i); expandedSources = s; }}
+                                    onclick={() => {
+                                        const s = new Set(expandedSources);
+                                        s.add(i);
+                                        expandedSources = s;
+                                    }}
                                 >
                                     +{msg.sources.length - SOURCES_VISIBLE}
                                 </button>
@@ -1581,7 +1782,11 @@
                             {#if overflow && expanded}
                                 <button
                                     class="source-chip source-chip--more"
-                                    onclick={() => { const s = new Set(expandedSources); s.delete(i); expandedSources = s; }}
+                                    onclick={() => {
+                                        const s = new Set(expandedSources);
+                                        s.delete(i);
+                                        expandedSources = s;
+                                    }}
                                 >
                                     свернуть
                                 </button>
@@ -1617,9 +1822,10 @@
                      фото + текст). Чистые image / image_gallery / link_list
                      остаются только в развёрнутом чате. -->
                 {@const isStreaming =
-                    streamingIdx !== null && streamingIdx === history.length - 1}
+                    streamingIdx !== null &&
+                    streamingIdx === history.length - 1}
                 {@const inlineBlocks = lastMsg.blocks.filter(
-                    b => b.type === "text" || b.type === "text_with_image",
+                    (b) => b.type === "text" || b.type === "text_with_image",
                 )}
                 <div class="inline-answer">
                     <div class="inline-question">{lastMsg.question}</div>
@@ -1697,8 +1903,15 @@
     <div class="composer">
         <div class="composer-inner" class:focused={false}>
             {#if slashOpen && slashMatches.length > 0}
-                <div class="slash-palette" role="listbox" bind:this={slashListEl}>
-                    <div class="slash-hint">↑↓ выбрать · Tab дополнить · Enter выполнить · Esc закрыть</div>
+                <div
+                    class="slash-palette"
+                    role="listbox"
+                    bind:this={slashListEl}
+                >
+                    <div class="slash-hint">
+                        ↑↓ выбрать · Tab дополнить · Enter выполнить · Esc
+                        закрыть
+                    </div>
                     {#each slashMatches as cmd, i}
                         <button
                             class="slash-item"
@@ -1767,87 +1980,97 @@
                         </button>
                     {:else}
                         {#if VOICE_ENABLED}
-                        <button
-                            class="action-btn tts-btn"
-                            class:off={!ttsEnabled}
-                            onclick={toggleTts}
-                            aria-label={ttsEnabled
-                                ? "Отключить озвучивание"
-                                : "Включить озвучивание"}
-                            title={ttsEnabled
-                                ? "Озвучивание вкл."
-                                : "Озвучивание выкл."}
-                        >
-                            {#if ttsEnabled}
-                                <svg
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <polygon
-                                        points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"
-                                        fill="currentColor"
-                                    />
-                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                                </svg>
-                            {:else}
-                                <svg
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <polygon
-                                        points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"
-                                        fill="currentColor"
-                                    />
-                                    <line x1="23" y1="9" x2="17" y2="15" />
-                                    <line x1="17" y1="9" x2="23" y2="15" />
-                                </svg>
-                            {/if}
-                        </button>
-                        <button
-                            class="action-btn mic-btn"
-                            class:active={state === "listening"}
-                            onclick={handleMic}
-                            aria-label="Голосовой ввод"
-                            disabled={state === "thinking"}
-                        >
-                            <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 16 16"
-                                fill="currentColor"
+                            <button
+                                class="action-btn tts-btn"
+                                class:off={!ttsEnabled}
+                                onclick={toggleTts}
+                                aria-label={ttsEnabled
+                                    ? "Отключить озвучивание"
+                                    : "Включить озвучивание"}
+                                title={ttsEnabled
+                                    ? "Озвучивание вкл."
+                                    : "Озвучивание выкл."}
                             >
-                                <rect x="5" y="1" width="6" height="9" rx="3" />
-                                <path
-                                    d="M2.5 8a5.5 5.5 0 0 0 11 0"
-                                    stroke="currentColor"
-                                    stroke-width="1.5"
-                                    fill="none"
-                                    stroke-linecap="round"
-                                />
-                                <line
-                                    x1="8"
-                                    y1="13.5"
-                                    x2="8"
-                                    y2="15.5"
-                                    stroke="currentColor"
-                                    stroke-width="1.5"
-                                    stroke-linecap="round"
-                                />
-                            </svg>
-                        </button>
+                                {#if ttsEnabled}
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <polygon
+                                            points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"
+                                            fill="currentColor"
+                                        />
+                                        <path
+                                            d="M15.54 8.46a5 5 0 0 1 0 7.07"
+                                        />
+                                        <path
+                                            d="M19.07 4.93a10 10 0 0 1 0 14.14"
+                                        />
+                                    </svg>
+                                {:else}
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <polygon
+                                            points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"
+                                            fill="currentColor"
+                                        />
+                                        <line x1="23" y1="9" x2="17" y2="15" />
+                                        <line x1="17" y1="9" x2="23" y2="15" />
+                                    </svg>
+                                {/if}
+                            </button>
+                            <button
+                                class="action-btn mic-btn"
+                                class:active={state === "listening"}
+                                onclick={handleMic}
+                                aria-label="Голосовой ввод"
+                                disabled={state === "thinking"}
+                            >
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                >
+                                    <rect
+                                        x="5"
+                                        y="1"
+                                        width="6"
+                                        height="9"
+                                        rx="3"
+                                    />
+                                    <path
+                                        d="M2.5 8a5.5 5.5 0 0 0 11 0"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        fill="none"
+                                        stroke-linecap="round"
+                                    />
+                                    <line
+                                        x1="8"
+                                        y1="13.5"
+                                        x2="8"
+                                        y2="15.5"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        stroke-linecap="round"
+                                    />
+                                </svg>
+                            </button>
                         {/if}
                         <button
                             class="action-btn send-btn"
@@ -1894,7 +2117,8 @@
         background: color-mix(in srgb, var(--color-bg) 72%, transparent);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
-        border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+        border: 1px solid
+            color-mix(in srgb, var(--color-accent) 28%, transparent);
         border-radius: 8px;
         font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
         font-size: 11px;
@@ -1914,7 +2138,10 @@
         font-family: inherit;
         font-size: inherit;
         cursor: pointer;
-        transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+        transition:
+            background 120ms ease,
+            color 120ms ease,
+            border-color 120ms ease;
     }
     .agent-mode-switch button:hover {
         color: var(--color-accent);
@@ -2763,8 +2990,14 @@
     }
 
     @keyframes toastIn {
-        from { opacity: 0; transform: translate(-50%, -8px); }
-        to { opacity: 1; transform: translate(-50%, 0); }
+        from {
+            opacity: 0;
+            transform: translate(-50%, -8px);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
     }
 
     /* ─── Matrix effect ──────────────────────────────────────────────────── */
@@ -2786,9 +3019,17 @@
     }
 
     @keyframes matrixFade {
-        0%   { opacity: 0; }
-        10%  { opacity: 1; }
-        85%  { opacity: 1; }
-        100% { opacity: 0; }
+        0% {
+            opacity: 0;
+        }
+        10% {
+            opacity: 1;
+        }
+        85% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+        }
     }
 </style>
