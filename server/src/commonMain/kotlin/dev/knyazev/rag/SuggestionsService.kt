@@ -56,6 +56,8 @@ class SuggestionsService(
                         You generate suggested questions for a portfolio chatbot about Sergey Knyazev.
                         Based on the content summary below, create exactly 4 short questions (under 40 chars each)
                         that a recruiter or hiring manager would ask. Mix technical and personal questions.
+                        Include one question about Kormium — his open-source ORM for
+                        Kotlin Multiplatform, one of his most significant projects.
                         Write questions in Russian. Return ONLY the questions, one per line, no numbering.
                         $skillGuidance
                     """.trimIndent(),
@@ -128,8 +130,8 @@ class SuggestionsService(
 
     companion object {
         private val DEFAULT_SUGGESTIONS = listOf(
+            "Расскажи про Kormium",
             "Какой стек использует Сергей?",
-            "Расскажи про RAG в проекте",
             "Какой опыт в архитектуре?",
             "Почему Kotlin/Ktor?",
         )
