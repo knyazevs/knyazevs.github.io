@@ -425,7 +425,7 @@ function buildHtml(
   /* ─────────────────────────── BODY LAYOUT ─── */
   .body { display: flex; }
 
-  .main { flex: 1; min-width: 0; padding: 12px 18px 12px 18px; }
+  .main { flex: 1; min-width: 0; padding: 10px 18px 10px 18px; }
 
   .sidebar {
     width: 188px; flex-shrink: 0;
@@ -435,7 +435,7 @@ function buildHtml(
   }
 
   /* ─────────────────────────── SECTIONS ─── */
-  .section { margin-bottom: 10px; }
+  .section { margin-bottom: 8px; }
   .section:last-child { margin-bottom: 0; }
 
   .sec-title {
@@ -633,6 +633,8 @@ async function main() {
       format: "A4",
       printBackground: true,
       margin: { top: "0", right: "0", bottom: "0", left: "0" },
+      // Контент плотного резюме должен умещаться в одну страницу A4
+      scale: 0.95,
     });
   } finally {
     await browser.close();
