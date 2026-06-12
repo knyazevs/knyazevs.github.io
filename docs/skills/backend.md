@@ -7,7 +7,9 @@ category: backend
 
 ## Языки
 
-- **Kotlin** — основной язык последних лет. Ktor, JetBrains Exposed, Kotlin Multiplatform
+- **Kotlin** — основной язык последних лет. Ktor, JetBrains Exposed, Kotlin Multiplatform.
+  Написал [Kormium](../projects/001-kormium-orm.md) — open-source ORM для KMP:
+  дизайн публичного API, cinterop с libpq/sqlite3, корутины и виртуальные потоки
 - **Java** — enterprise-разработка, Hibernate, Maven/Gradle
 - **TypeScript / Node.js** — NestJS, знакомство с экосистемой
 
@@ -19,7 +21,8 @@ category: backend
 
 ## Что умею хорошо
 
-- Проектирование API и слоёв взаимодействия между сервисами
+- Проектирование API и слоёв взаимодействия между сервисами,
+  включая публичный API библиотеки (Kormium: SemVer, BOM, политика совместимости)
 - Оптимизация узких мест: диагностика, рефакторинг без остановки продакшена
 - Real-time системы: синхронизация состояния, WebSocket, WebRTC (Jitsi)
 - Интеграции с внешними системами: банковские API, строительные платформы
