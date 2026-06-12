@@ -54,10 +54,6 @@ function readMd(filePath: string) {
   return matter(fs.readFileSync(filePath, "utf-8"));
 }
 
-function calcAge(birthYear: number): number {
-  return new Date().getFullYear() - birthYear;
-}
-
 /** Extract the content body of a `## Heading` section from markdown. */
 function extractSection(markdown: string, heading: string): string {
   const re = new RegExp(`## ${heading}\\n([\\s\\S]*?)(?=\\n## |$)`);
@@ -143,31 +139,6 @@ function loadProfile(): {
   return { meta: data as Profile, summary, strengths, lookingFor };
 }
 
-function loadPhoto(photoPath?: string): string | null {
-  if (!photoPath) return null;
-  // Web-style /images/foo/bar.png (рантайм-URL, единый для сайта, LLM и CV) —
-  // резолвим в app/public/images (после build-static-data) либо в docs/ (исходник).
-  const candidates: string[] = [];
-  if (photoPath.startsWith("/images/")) {
-    const rel = photoPath.slice("/images/".length);
-    candidates.push(path.resolve(ROOT, "app", "public", "images", rel));
-    candidates.push(path.resolve(DOCS, rel));
-  } else if (path.isAbsolute(photoPath)) {
-    candidates.push(photoPath);
-  } else {
-    candidates.push(path.resolve(ROOT, photoPath));
-  }
-  const fullPath = candidates.find((p) => fs.existsSync(p));
-  if (!fullPath) {
-    console.warn(`[cv] Photo not found (tried: ${candidates.join(", ")}) — skipping`);
-    return null;
-  }
-  const ext = path.extname(fullPath).slice(1).toLowerCase();
-  const mime = ext === "jpg" ? "jpeg" : ext;
-  const data = fs.readFileSync(fullPath);
-  return `data:image/${mime};base64,${data.toString("base64")}`;
-}
-
 function loadEducation(): Education {
   const { content } = readMd(path.join(DOCS, "profile/04-education.md"));
 
@@ -245,7 +216,6 @@ const SKILL_TAGS: Record<string, string[]> = {
 // ─── HTML rendering ───────────────────────────────────────────────────────────
 
 const ICONS: Record<string, string> = {
-  phone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg>`,
   email: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
   site: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
   telegram: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>`,
@@ -255,8 +225,6 @@ const ICONS: Record<string, string> = {
 
 function renderContacts(contacts: Profile["contacts"]): string {
   const items: string[] = [];
-  if (contacts.phone)
-    items.push(`${ICONS.phone}<span>${esc(contacts.phone)}</span>`);
   if (contacts.email)
     items.push(`${ICONS.email}<a href="mailto:${contacts.email}">${esc(contacts.email)}</a>`);
   if (contacts.site) {
@@ -332,7 +300,6 @@ function renderLanguages(edu: Education): string {
 
 function buildHtml(
   profile: Profile,
-  photoUri: string | null,
   summary: string,
   strengths: string[],
   lookingFor: string,
@@ -340,12 +307,7 @@ function buildHtml(
   experiences: Experience[],
   skills: Skill[],
 ): string {
-  const age = calcAge(profile.birth_year);
   const yearsInIT = new Date().getFullYear() - 2017;
-
-  const photoHtml = photoUri
-    ? `<img class="photo" src="${photoUri}" alt="">`
-    : `<div class="photo-placeholder"></div>`;
 
   const summaryParas = summary
     .split("\n")
@@ -416,23 +378,10 @@ function buildHtml(
   .hd {
     background: linear-gradient(135deg, #0F172A, #1E293B);
     color: #FFFFFF;
-    padding: 18px 20px 16px;
+    padding: 14px 20px 12px;
     display: flex;
     align-items: center;
     gap: 18px;
-  }
-
-  .photo {
-    width: 112px; height: 112px;
-    border-radius: 6px;
-    object-fit: cover;
-    flex-shrink: 0;
-  }
-  .photo-placeholder {
-    width: 112px; height: 112px;
-    border-radius: 6px;
-    background: rgba(255,255,255,0.07);
-    flex-shrink: 0;
   }
 
   .hd-info { flex: 1; min-width: 0; }
@@ -503,7 +452,7 @@ function buildHtml(
   }
 
   /* ─── Summary ─── */
-  .sum-text { color: var(--text); font-size: 10pt; line-height: 1.55; }
+  .sum-text { color: var(--text); font-size: 10pt; line-height: 1.48; }
   .sum-text p + p { margin-top: 3px; }
 
   .str-list {
@@ -514,7 +463,7 @@ function buildHtml(
 
   /* ─── Experience ─── */
   .exp {
-    margin-bottom: 0; padding-bottom: 12px;
+    margin-bottom: 0; padding-bottom: 9px;
     border-bottom: 1px solid var(--border);
     padding-left: 11px; position: relative;
   }
@@ -560,7 +509,7 @@ function buildHtml(
     color: var(--muted); font-size: 8.5pt; white-space: nowrap; flex-shrink: 0;
     font-weight: 500;
   }
-  .exp-desc { color: var(--sub); font-size: 9.5pt; line-height: 1.38; margin-top: 2px; }
+  .exp-desc { color: var(--sub); font-size: 9.5pt; line-height: 1.33; margin-top: 2px; }
 
   /* ─── Sidebar: Skills ─── */
   .skill-cat { margin-bottom: 7px; }
@@ -593,7 +542,6 @@ function buildHtml(
 
   <!-- ══════ HEADER ══════ -->
   <div class="hd">
-    ${photoHtml}
     <div class="hd-info">
       <h1>${esc(profile.name)}</h1>
       <div class="job-title">${esc(profile.title)}</div>
@@ -601,7 +549,7 @@ function buildHtml(
       <div class="contacts">${renderContacts(profile.contacts)}</div>
     </div>
     <div class="hd-meta">
-      ${age} лет<br>${esc(profile.location)}
+      ${esc(profile.location)}
     </div>
   </div>
 
@@ -661,14 +609,13 @@ async function main() {
   console.log("[cv] Loading data...");
 
   const { meta: profile, summary, strengths, lookingFor } = loadProfile();
-  const photoUri = loadPhoto(profile.photo);
   const education = loadEducation();
   const experiences = loadExperience();
   const skills = loadSkills();
 
   console.log(`[cv] ${experiences.length} experience entries, ${skills.length} skill categories`);
 
-  const html = buildHtml(profile, photoUri, summary, strengths, lookingFor, education, experiences, skills);
+  const html = buildHtml(profile, summary, strengths, lookingFor, education, experiences, skills);
 
   // Ensure output directory exists
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
