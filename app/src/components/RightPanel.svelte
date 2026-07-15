@@ -493,7 +493,7 @@
             name: "/cv",
             description: "скачать резюме (PDF)",
             handler: () => {
-                window.open("/cv.pdf", "_blank");
+                window.open("/CV_Sergey_Knyazev_Lead_JVM_Engineer.pdf", "_blank");
             },
         },
         {

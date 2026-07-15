@@ -1,7 +1,7 @@
 ---
 type: profile
 name: Сергей Князев
-title: Technical Lead / Architect · Kotlin / Java
+title: Technical Lead / Architect · JVM (Kotlin, Java)
 birth_year: 1996
 location: Удалённо · Россия
 photo: "/images/profile/profile.png"
@@ -20,11 +20,11 @@ contacts:
 
 ## Кратко
 
-Technical Lead / Архитектор с 9+ годами коммерческой разработки. 7 лет в роли технического лидера — проектирую backend-системы и low-code платформы, руковожу командами 7–13 человек.
-Основной стек: Kotlin (Ktor, Koin, Exposed), Java, PostgreSQL. Интеграция AI в рабочий процесс.
-Фокус: архитектура, R&D, интеграции, масштабирование и развитие продуктов из MVP.
+Technical Lead / Архитектор с 9+ годами коммерческой разработки. 7 лет в роли технического лидера — проектирую распределённые backend-системы и B2B SaaS платформы, руковожу командами 7–13 человек.
+Основной стек: JVM (Kotlin, Java), Spring Boot, Ktor, Exposed, PostgreSQL. Интеграция AI в рабочий процесс.
+Фокус: архитектура, R&D, миграции без даунтайма, масштабирование продуктов из MVP.
 
-Автор [Kormium](https://github.com/kormium/kormium) — open-source ORM для Kotlin Multiplatform (Maven Central, Apache 2.0): дизайн публичного API, PostgreSQL на Kotlin/Native через libpq, бенчмарки, релиз-инжиниринг.
+Автор [Kormium](https://github.com/kormium/kormium) — open-source ORM для Kotlin Multiplatform (Maven Central, Apache 2.0): дизайн публичного API, PostgreSQL на Kotlin/Native через libpq. Глубокое понимание внутреннего устройства БД, транзакций и многопоточности.
 
 
 ## Профессиональный фокус

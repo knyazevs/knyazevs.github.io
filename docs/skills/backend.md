@@ -10,7 +10,7 @@ category: backend
 - **Kotlin** — основной язык последних лет. Ktor, JetBrains Exposed, Kotlin Multiplatform.
   Написал [Kormium](../projects/001-kormium-orm.md) — open-source ORM для KMP:
   дизайн публичного API, cinterop с libpq/sqlite3, корутины и виртуальные потоки
-- **Java** — enterprise-разработка, Hibernate, Maven/Gradle
+- **Java** — enterprise-разработка, Spring Boot, Hibernate, Maven/Gradle
 - **TypeScript / Node.js** — NestJS, знакомство с экосистемой
 
 ## Базы данных
@@ -26,6 +26,12 @@ category: backend
 - Оптимизация узких мест: диагностика, рефакторинг без остановки продакшена
 - Real-time системы: синхронизация состояния, WebSocket, WebRTC (Jitsi)
 - Интеграции с внешними системами: банковские API, строительные платформы
+
+## Изучаю самостоятельно
+
+- **Micronaut** — AOT-инъекция зависимостей без рефлексии, альтернатива Spring
+  для нативной компиляции и быстрого старта
+- **jOOQ** — типобезопасный SQL-DSL; сравниваю с Exposed по контролю над запросами
 
 ## Контекст глубины
 

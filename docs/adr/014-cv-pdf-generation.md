@@ -34,7 +34,7 @@ docs/ (Source of Truth)
         ↓
   HTML template
         ↓
-  app/dist/cv.pdf
+  app/public/CV_Sergey_Knyazev_Lead_JVM_Engineer.pdf
 ```
 
 ### Источники данных для сборки CV
@@ -97,7 +97,8 @@ Bun TypeScript-скрипт:
 1. Читает front matter и body всех источников
 2. Собирает структурированный CV-объект
 3. Рендерит HTML через шаблон `scripts/cv-template.html`
-4. Сохраняет PDF через Puppeteer → `app/dist/cv.pdf`
+4. Сохраняет PDF через Puppeteer → `app/public/CV_Sergey_Knyazev_Lead_JVM_Engineer.pdf`
+   (человекочитаемое имя — рекрутер сохраняет резюме под понятным названием)
 
 ### Интеграция в build
 
@@ -126,7 +127,7 @@ Puppeteer выбран по трём причинам:
 ### Положительные
 - CV всегда актуален: любой push пересобирает PDF
 - Нет дублирования данных: один источник для сайта, LLM и CV
-- CV доступен как статический файл на сайте (`/cv.pdf`)
+- CV доступен как статический файл на сайте (`/CV_Sergey_Knyazev_Lead_JVM_Engineer.pdf`)
 
 ### Отрицательные / Стоимость
 - Puppeteer добавляет ~150 MB к `node_modules` (Chromium)
