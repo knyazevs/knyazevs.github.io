@@ -2,8 +2,9 @@
 dist/
 # generated types
 .astro/
-# generated CV — recreated by `bun run build:cv`
-app/public/cv.pdf
+# generated CV — recreated by `bun run build:cv` / `bun run build:cv:en`
+app/public/CV_Sergey_Knyazev_Lead_JVM_Engineer.pdf
+app/public/CV_Sergey_Knyazev_Lead_JVM_Engineer_EN.pdf
 # статические данные для прод-фронта — генерируются `bun run build:data`
 app/public/data/
 # прогресс автора по learning-системе — личный, не в VCS

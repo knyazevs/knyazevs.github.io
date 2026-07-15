@@ -7,6 +7,7 @@
     "dev:server": "cd server && ./gradlew -q runReleaseExecutableMacosArm64",
     "dev:app": "cd app && bun run dev",
     "build:cv": "node --experimental-strip-types scripts/build-cv.ts",
+    "build:cv:en": "node --experimental-strip-types scripts/build-cv-en.ts",
     "build:data": "node --experimental-strip-types scripts/build-static-data.ts",
     "build:corpus-map": "node --experimental-strip-types scripts/generate-corpus-map.ts",
     "build:app": "cd app && bun run build",
